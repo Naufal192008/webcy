@@ -6,308 +6,218 @@
     <title>Checkout - WebPro UMKM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        .payment-method-card {
+        .payment-card {
             cursor: pointer;
-            border: 2px solid #dee2e6;
-            border-radius: 10px;
+            border: 3px solid #ddd;
+            border-radius: 15px;
             padding: 20px;
             text-align: center;
-            transition: all 0.3s;
-            height: 100%;
+            transition: 0.3s;
         }
-        .payment-method-card:hover,
-        .payment-method-card.selected {
-            border-color: #667eea;
-            background: #f8f9ff;
+        .payment-card:hover, .payment-card.selected {
+            border-color: #0d6efd;
+            background: #f0f7ff;
             transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-        .payment-method-card i {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-        }
-        .checkout-steps {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 30px;
-        }
-        .checkout-step {
-            padding: 10px 20px;
-            background: #e0e0e0;
-            color: #999;
-            margin: 0 5px;
-            border-radius: 5px;
-        }
-        .checkout-step.active {
-            background: #667eea;
-            color: white;
-        }
-        .checkout-step.completed {
-            background: #1cc88a;
-            color: white;
         }
     </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
-            <a class="navbar-brand" href="index.html">
+            <a class="navbar-brand" href="dashboard.html">
                 <i class="fas fa-globe"></i> WebPro UMKM
             </a>
+            <div class="ms-auto text-white">
+                <span id="userDisplay"></span>
+            </div>
         </div>
     </nav>
 
     <div class="container py-5">
-        <!-- Steps -->
-        <div class="checkout-steps">
-            <div class="checkout-step active">1. Review Pesanan</div>
-            <div class="checkout-step">2. Pembayaran</div>
-            <div class="checkout-step">3. Konfirmasi</div>
+        <h2 class="mb-4"><i class="fas fa-shopping-cart"></i> Checkout</h2>
+        
+        <!-- Order Summary -->
+        <div class="card mb-4">
+            <div class="card-header bg-white"><h5>Ringkasan Pesanan</h5></div>
+            <div class="card-body" id="orderSummary">
+                <p>Loading...</p>
+            </div>
         </div>
 
-        <div class="row">
-            <!-- Order Summary -->
-            <div class="col-md-8">
-                <div class="card mb-4">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Ringkasan Pesanan</h5>
-                    </div>
-                    <div class="card-body" id="orderItems"></div>
-                </div>
-
-                <!-- Promo Code -->
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h6>Punya Kode Promo?</h6>
-                        <div class="input-group">
-                            <input type="text" class="form-control" id="promoCode" placeholder="Masukkan kode promo">
-                            <button class="btn btn-primary" onclick="applyPromo()">Gunakan</button>
-                        </div>
-                        <div id="promoMessage" class="mt-2"></div>
-                    </div>
-                </div>
-
-                <!-- Payment Method -->
-                <div class="card mb-4">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">Metode Pembayaran</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-6 col-md-3">
-                                <div class="payment-method-card" onclick="selectPayment('dana', this)">
-                                    <i class="fas fa-wallet text-info"></i>
-                                    <h6>DANA</h6>
-                                    <small class="text-muted">085710785244</small>
-                                </div>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <div class="payment-method-card" onclick="selectPayment('ovo', this)">
-                                    <i class="fas fa-mobile-alt text-purple"></i>
-                                    <h6>OVO</h6>
-                                    <small class="text-muted">085710785244</small>
-                                </div>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <div class="payment-method-card" onclick="selectPayment('gopay', this)">
-                                    <i class="fas fa-google-wallet text-success"></i>
-                                    <h6>GoPay</h6>
-                                    <small class="text-muted">085710785244</small>
-                                </div>
-                            </div>
-                            <div class="col-6 col-md-3">
-                                <div class="payment-method-card" onclick="selectPayment('qris', this)">
-                                    <i class="fas fa-qrcode text-warning"></i>
-                                    <h6>QRIS</h6>
-                                    <small class="text-muted">Scan QR</small>
-                                </div>
-                            </div>
+        <!-- Payment Method -->
+        <div class="card mb-4">
+            <div class="card-header bg-white"><h5>Pilih Metode Pembayaran</h5></div>
+            <div class="card-body">
+                <div class="row g-3" id="paymentMethods">
+                    <div class="col-6 col-md-3">
+                        <div class="payment-card" onclick="selectPayment('dana', this)">
+                            <i class="fas fa-wallet fa-2x text-info"></i>
+                            <h5 class="mt-2">DANA</h5>
+                            <small>085710785244</small>
                         </div>
                     </div>
-                </div>
-
-                <!-- Customer Note -->
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h6>Catatan (Opsional)</h6>
-                        <textarea class="form-control" id="orderNote" rows="2" 
-                                  placeholder="Tambahkan catatan untuk pesanan Anda..."></textarea>
+                    <div class="col-6 col-md-3">
+                        <div class="payment-card" onclick="selectPayment('ovo', this)">
+                            <i class="fas fa-mobile-alt fa-2x text-purple"></i>
+                            <h5 class="mt-2">OVO</h5>
+                            <small>085710785244</small>
+                        </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Order Total -->
-            <div class="col-md-4">
-                <div class="card sticky-top" style="top: 20px;">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0">Total Pembayaran</h5>
+                    <div class="col-6 col-md-3">
+                        <div class="payment-card" onclick="selectPayment('gopay', this)">
+                            <i class="fas fa-google-wallet fa-2x text-success"></i>
+                            <h5 class="mt-2">GoPay</h5>
+                            <small>085710785244</small>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Subtotal</span>
-                            <span id="subtotal">Rp 0</span>
+                    <div class="col-6 col-md-3">
+                        <div class="payment-card" onclick="selectPayment('qris', this)">
+                            <i class="fas fa-qrcode fa-2x text-warning"></i>
+                            <h5 class="mt-2">QRIS</h5>
+                            <small>Scan QR</small>
                         </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Diskon</span>
-                            <span class="text-danger" id="discount">-Rp 0</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Pajak (11%)</span>
-                            <span id="tax">Rp 0</span>
-                        </div>
-                        <hr>
-                        <div class="d-flex justify-content-between">
-                            <strong>Total</strong>
-                            <strong class="text-primary" id="total">Rp 0</strong>
-                        </div>
-                        
-                        <button class="btn btn-primary w-100 mt-3" id="payButton" onclick="processPayment()">
-                            <i class="fas fa-lock"></i> Bayar Sekarang
-                        </button>
-                        
-                        <small class="text-muted d-block text-center mt-2">
-                            <i class="fas fa-shield-alt"></i> Pembayaran aman terenkripsi
-                        </small>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Total -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <h4>Total:</h4>
+                    <h4 class="text-primary" id="totalPrice">Rp 0</h4>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-primary btn-lg w-100" onclick="processCheckout()">
+            <i class="fas fa-lock"></i> Bayar Sekarang
+        </button>
     </div>
 
-    <!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-
-<!-- Config -->
-<script src="js/firebase-config.js"></script>
-    <script src="js/cart-manager.js"></script>
-    <script src="js/payment.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    
     <script>
         let selectedPayment = '';
-        let currentTotal = 0;
-        let promoDiscount = 0;
+        let currentUser = null;
 
-        // Load cart items
-        async function loadCheckout() {
-            if (!auth.currentUser) {
-                window.location.href = 'login.html';
-                return;
+        // Cek login - TAPI JANGAN REDIRECT
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                document.getElementById('userDisplay').textContent = 
+                    '👤 ' + (user.displayName || user.email);
+                loadCart();
+            } else {
+                // Tampilkan pesan, jangan redirect
+                document.getElementById('userDisplay').textContent = '❌ Belum login';
+                document.getElementById('orderSummary').innerHTML = 
+                    '<div class="alert alert-warning">Silakan <a href="login.html">login</a> terlebih dahulu untuk checkout.</div>';
             }
+        });
 
-            const items = await cartManager.getCart();
-            const container = document.getElementById('orderItems');
-            
-            if (items.length === 0) {
-                container.innerHTML = '<p class="text-center text-muted">Keranjang kosong</p>';
-                return;
-            }
-
-            container.innerHTML = items.map(item => {
-                const price = item.price - (item.price * item.discount / 100);
-                const total = price * item.quantity;
-                
-                return `
-                    <div class="row mb-3 align-items-center">
-                        <div class="col-2">
-                            <img src="${item.image || 'placeholder.jpg'}" class="img-fluid rounded" 
-                                 alt="${item.name}">
-                        </div>
-                        <div class="col-5">
-                            <h6>${item.name}</h6>
-                            <small class="text-muted">Qty: ${item.quantity}</small>
-                        </div>
-                        <div class="col-3 text-end">
-                            <span>Rp ${formatRupiah(total)}</span>
-                        </div>
-                        <div class="col-2 text-end">
-                            <button class="btn btn-sm btn-outline-danger" 
-                                    onclick="removeItem('${item.productId}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            calculateTotal();
-        }
-
-        function calculateTotal() {
-            cartManager.getTotal().then(subtotal => {
-                currentTotal = subtotal - promoDiscount;
-                const tax = currentTotal * 0.11;
-                const finalTotal = currentTotal + tax;
-
-                document.getElementById('subtotal').textContent = 'Rp ' + formatRupiah(subtotal);
-                document.getElementById('discount').textContent = '-Rp ' + formatRupiah(promoDiscount);
-                document.getElementById('tax').textContent = 'Rp ' + formatRupiah(tax);
-                document.getElementById('total').textContent = 'Rp ' + formatRupiah(finalTotal);
-            });
+        function loadCart() {
+            const db = firebase.firestore();
+            db.collection('carts').doc(currentUser.uid).get()
+                .then((doc) => {
+                    const container = document.getElementById('orderSummary');
+                    if (!doc.exists || !doc.data().items || doc.data().items.length === 0) {
+                        container.innerHTML = '<p class="text-muted">Keranjang kosong. <a href="index.html">Belanja dulu</a></p>';
+                        document.getElementById('totalPrice').textContent = 'Rp 0';
+                        return;
+                    }
+                    
+                    const items = doc.data().items;
+                    let total = 0;
+                    let html = '';
+                    
+                    items.forEach((item, index) => {
+                        const price = item.price - (item.price * (item.discount || 0) / 100);
+                        const subtotal = price * item.quantity;
+                        total += subtotal;
+                        html += `
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div>
+                                    <strong>${item.name}</strong>
+                                    <small class="text-muted">x${item.quantity}</small>
+                                </div>
+                                <span>Rp ${subtotal.toLocaleString('id-ID')}</span>
+                            </div>
+                        `;
+                    });
+                    
+                    container.innerHTML = html;
+                    document.getElementById('totalPrice').textContent = 
+                        'Rp ' + total.toLocaleString('id-ID');
+                })
+                .catch((err) => {
+                    console.error('Error loading cart:', err);
+                });
         }
 
         function selectPayment(method, element) {
             selectedPayment = method;
-            document.querySelectorAll('.payment-method-card').forEach(card => {
-                card.classList.remove('selected');
-            });
+            document.querySelectorAll('.payment-card').forEach(c => c.classList.remove('selected'));
             element.classList.add('selected');
         }
 
-        async function applyPromo() {
-            const code = document.getElementById('promoCode').value.trim();
-            const result = await cartManager.applyPromoCode(code);
-            
-            const messageDiv = document.getElementById('promoMessage');
-            
-            if (result.valid) {
-                promoDiscount = result.discount;
-                messageDiv.innerHTML = `<span class="text-success">${result.message}</span>`;
-                calculateTotal();
-            } else {
-                promoDiscount = 0;
-                messageDiv.innerHTML = `<span class="text-danger">${result.message}</span>`;
+        function processCheckout() {
+            if (!currentUser) {
+                Swal.fire('Login Dulu', 'Silakan login terlebih dahulu', 'warning');
+                return;
             }
-        }
-
-        async function processPayment() {
+            
             if (!selectedPayment) {
                 Swal.fire('Pilih Pembayaran', 'Silakan pilih metode pembayaran', 'warning');
                 return;
             }
 
-            if (!auth.currentUser) {
-                Swal.fire('Login', 'Silakan login terlebih dahulu', 'warning');
+            const totalText = document.getElementById('totalPrice').textContent;
+            const total = parseInt(totalText.replace(/[^0-9]/g, ''));
+
+            if (total === 0) {
+                Swal.fire('Keranjang Kosong', 'Tambahkan produk dulu', 'warning');
                 return;
             }
 
-            const total = parseFloat(document.getElementById('total').textContent.replace(/[^0-9]/g, ''));
-            const note = document.getElementById('orderNote').value;
-
-            // Process payment
-            await processPaymentOrder({
-                method: selectedPayment,
-                amount: total,
-                note: note
+            // Simpan order
+            const db = firebase.firestore();
+            db.collection('orders').add({
+                userId: currentUser.uid,
+                userName: currentUser.displayName || currentUser.email,
+                userEmail: currentUser.email,
+                totalPrice: total,
+                paymentMethod: selectedPayment,
+                paymentNumber: '085710785244',
+                status: 'pending',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                // Hapus keranjang
+                return db.collection('carts').doc(currentUser.uid).delete();
+            }).then(() => {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Pesanan Berhasil!',
+                    html: `
+                        <p>Transfer ke <strong>${selectedPayment.toUpperCase()}</strong></p>
+                        <h4>085710785244</h4>
+                        <p>a.n. <strong>WebPro UMKM</strong></p>
+                        <p>Total: <strong>Rp ${total.toLocaleString('id-ID')}</strong></p>
+                    `,
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    window.location.href = 'history.html';
+                });
+            }).catch((err) => {
+                Swal.fire('Error', 'Gagal memproses: ' + err.message, 'error');
             });
         }
-
-        async function removeItem(productId) {
-            await cartManager.removeItem(productId);
-            loadCheckout();
-        }
-
-        function formatRupiah(amount) {
-            return new Intl.NumberFormat('id-ID').format(amount);
-        }
-
-        // Load checkout on page ready
-        document.addEventListener('DOMContentLoaded', loadCheckout);
     </script>
 </body>
 </html>
