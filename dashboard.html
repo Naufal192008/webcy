@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - WebPro UMKM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: #f5f5f5; }
+        .dashboard-card {
+            border-radius: 15px;
+            border: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: 0.3s;
+        }
+        .dashboard-card:hover { transform: translateY(-5px); }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#"><i class="fas fa-globe"></i> WebPro UMKM</a>
+            <div class="ms-auto">
+                <a href="cart.html" class="btn btn-light me-2"><i class="fas fa-shopping-cart"></i> Keranjang</a>
+                <a href="profile.html" class="btn btn-light me-2"><i class="fas fa-user"></i> Profil</a>
+                <button class="btn btn-danger" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <h2 class="mb-4">Dashboard</h2>
+        <div id="userInfo" class="alert alert-info"></div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="card dashboard-card p-4 text-center">
+                    <i class="fas fa-shopping-bag fa-3x text-primary mb-3"></i>
+                    <h5>Pesanan Saya</h5>
+                    <a href="history.html" class="btn btn-primary">Lihat</a>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card dashboard-card p-4 text-center">
+                    <i class="fas fa-shopping-cart fa-3x text-success mb-3"></i>
+                    <h5>Keranjang</h5>
+                    <a href="cart.html" class="btn btn-success">Lihat</a>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card dashboard-card p-4 text-center">
+                    <i class="fas fa-user fa-3x text-warning mb-3"></i>
+                    <h5>Profil</h5>
+                    <a href="profile.html" class="btn btn-warning">Edit</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script>
+        firebase.auth().onAuthStateChanged((user) => {
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            document.getElementById('userInfo').innerHTML = `
+                Selamat datang, <strong>${user.displayName || 'User'}</strong> | ${user.email}
+            `;
+        });
+        
+        function logout() {
+            firebase.auth().signOut().then(() => {
+                window.location.href = 'login.html';
+            });
+        }
+    </script>
+</body>
+</html>
