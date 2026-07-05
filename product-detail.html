@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detail Produk - WebPro UMKM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .product-gallery {
+            position: sticky;
+            top: 20px;
+        }
+        .main-image {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            border-radius: 15px;
+            cursor: zoom-in;
+        }
+        .thumbnail-list {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .thumbnail {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        .thumbnail.active {
+            border-color: #667eea;
+        }
+        .rating-stars {
+            color: #ffc107;
+            font-size: 1.2rem;
+        }
+        .review-card {
+            border-left: 3px solid #667eea;
+            margin-bottom: 15px;
+            padding-left: 15px;
+        }
+        .package-feature {
+            padding: 10px;
+            border-radius: 10px;
+            background: #f8f9fa;
+            margin-bottom: 10px;
+        }
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .zoom-lens {
+            position: absolute;
+            border: 2px solid #667eea;
+            background: rgba(102, 126, 234, 0.2);
+            pointer-events: none;
+        }
+        .faq-item {
+            border-bottom: 1px solid #e0e0e0;
+            padding: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="index.html">
+                <i class="fas fa-globe"></i> WebPro UMKM
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="index.html">Beranda</a></li>
+                    <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+                    <li class="nav-item">
+                        <a class="nav-link position-relative" href="cart.html">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span class="badge bg-danger rounded-pill" id="cartBadge">0</span>
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user"></i> <span id="userName">User</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="profile.html">Profile</a></li>
+                            <li><a class="dropdown-item" href="history.html">Riwayat</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="logout()">Logout</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5">
+        <div class="row">
+            <!-- Product Gallery -->
+            <div class="col-md-6">
+                <div class="product-gallery">
+                    <div class="position-relative" id="zoomContainer">
+                        <img src="placeholder.jpg" class="main-image" id="mainImage" alt="Product">
+                        <div class="zoom-lens" id="zoomLens" style="display:none;"></div>
+                    </div>
+                    <div class="thumbnail-list" id="thumbnailList"></div>
+                    
+                    <!-- Share buttons -->
+                    <div class="mt-3">
+                        <small class="text-muted">Bagikan:</small>
+                        <div class="d-flex gap-2 mt-2">
+                            <button class="btn btn-sm btn-outline-primary"><i class="fab fa-facebook"></i></button>
+                            <button class="btn btn-sm btn-outline-info"><i class="fab fa-twitter"></i></button>
+                            <button class="btn btn-sm btn-outline-success"><i class="fab fa-whatsapp"></i></button>
+                            <button class="btn btn-sm btn-outline-secondary"><i class="fas fa-copy"></i> Copy Link</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Info -->
+            <div class="col-md-6">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="index.html">Home</a></li>
+                        <li class="breadcrumb-item"><a href="#" id="breadcrumbCategory">Kategori</a></li>
+                        <li class="breadcrumb-item active" id="breadcrumbProduct">Produk</li>
+                    </ol>
+                </nav>
+                
+                <h1 class="fw-bold mb-2" id="productTitle">Nama Produk</h1>
+                
+                <div class="d-flex align-items-center mb-3">
+                    <div class="rating-stars me-2" id="productRating"></div>
+                    <span class="text-muted">(<span id="ratingCount">0</span> reviews)</span>
+                    <span class="mx-2">|</span>
+                    <span class="text-success"><i class="fas fa-check-circle"></i> <span id="soldCount">0</span> terjual</span>
+                </div>
+                
+                <div class="card bg-light mb-4">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <h3 class="text-primary fw-bold mb-0" id="productPrice">Rp 0</h3>
+                                <small class="text-decoration-line-through text-muted" id="originalPrice"></small>
+                            </div>
+                            <div class="col-6 text-end">
+                                <span class="badge bg-danger" id="discountBadge" style="display:none;">-0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <h5>Deskripsi</h5>
+                    <p id="shortDescription"></p>
+                    <button class="btn btn-link p-0" onclick="scrollToDescription()">
+                        Baca selengkapnya <i class="fas fa-arrow-down"></i>
+                    </button>
+                </div>
+                
+                <div class="mb-4">
+                    <h5>Fitur Utama</h5>
+                    <div class="row" id="featuresList">
+                        <div class="col-6">
+                            <div class="package-feature">
+                                <i class="fas fa-check text-success"></i> Responsive Design
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="package-feature">
+                                <i class="fas fa-check text-success"></i> SEO Friendly
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="package-feature">
+                                <i class="fas fa-check text-success"></i> 5 Halaman
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="package-feature">
+                                <i class="fas fa-check text-success"></i> Support 24/7
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary btn-lg" onclick="addToCart()">
+                        <i class="fas fa-cart-plus"></i> Tambah ke Keranjang
+                    </button>
+                    <button class="btn btn-success btn-lg" onclick="buyNow()">
+                        <i class="fas fa-bolt"></i> Beli Sekarang
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="addToWishlist()">
+                        <i class="far fa-heart"></i> Tambah ke Wishlist
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Full Description & Reviews Tabs -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <ul class="nav nav-tabs" id="productTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-bs-toggle="tab" href="#description">Deskripsi Lengkap</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#reviews">
+                            Ulasan (<span id="reviewCountTab">0</span>)
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="tab" href="#faq">FAQ</a>
+                    </li>
+                </ul>
+                
+                <div class="tab-content p-4 border border-top-0 rounded-bottom">
+                    <div class="tab-pane fade show active" id="description">
+                        <div id="fullDescription"></div>
+                        
+                        <h5 class="mt-4">Teknologi yang Digunakan</h5>
+                        <div class="row">
+                            <div class="col-md-3 text-center">
+                                <i class="fab fa-html5 fa-3x text-danger"></i>
+                                <p>HTML5</p>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <i class="fab fa-css3-alt fa-3x text-primary"></i>
+                                <p>CSS3</p>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <i class="fab fa-js fa-3x text-warning"></i>
+                                <p>JavaScript</p>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <i class="fab fa-bootstrap fa-3x text-purple"></i>
+                                <p>Bootstrap 5</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="reviews">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="text-center">
+                                    <h1 class="display-1 fw-bold" id="averageRating">0.0</h1>
+                                    <div class="rating-stars mb-2" id="reviewStars"></div>
+                                    <p class="text-muted"><span id="totalReviews">0</span> ulasan</p>
+                                </div>
+                                
+                                <div id="ratingBars"></div>
+                            </div>
+                            <div class="col-md-8">
+                                <button class="btn btn-primary mb-3" onclick="showAddReviewForm()">
+                                    <i class="fas fa-star"></i> Tulis Ulasan
+                                </button>
+                                
+                                <div id="addReviewForm" style="display:none;" class="card mb-4">
+                                    <div class="card-body">
+                                        <h5>Beri Rating & Ulasan</h5>
+                                        <div class="mb-3">
+                                            <label>Rating</label>
+                                            <div id="starRating">
+                                                <i class="far fa-star fa-2x" data-rating="1"></i>
+                                                <i class="far fa-star fa-2x" data-rating="2"></i>
+                                                <i class="far fa-star fa-2x" data-rating="3"></i>
+                                                <i class="far fa-star fa-2x" data-rating="4"></i>
+                                                <i class="far fa-star fa-2x" data-rating="5"></i>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label>Ulasan Anda</label>
+                                            <textarea class="form-control" id="reviewText" rows="3" 
+                                                      placeholder="Ceritakan pengalaman Anda..."></textarea>
+                                        </div>
+                                        <button class="btn btn-success" onclick="submitReview()">Kirim Ulasan</button>
+                                    </div>
+                                </div>
+                                
+                                <div id="reviewsList"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="faq">
+                        <div class="faq-item">
+                            <h6><i class="fas fa-question-circle text-primary"></i> Berapa lama proses pembuatan?</h6>
+                            <p>Proses pembuatan website memakan waktu 3-7 hari kerja tergantung kompleksitas.</p>
+                        </div>
+                        <div class="faq-item">
+                            <h6><i class="fas fa-question-circle text-primary"></i> Apakah bisa revisi?</h6>
+                            <p>Ya, kami menyediakan 3x revisi gratis.</p>
+                        </div>
+                        <div class="faq-item">
+                            <h6><i class="fas fa-question-circle text-primary"></i> Apakah termasuk domain & hosting?</h6>
+                            <p>Ya, paket sudah termasuk domain .com dan hosting 1 tahun.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Related Products -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <h3 class="mb-4">Produk Terkait</h3>
+                <div class="row" id="relatedProducts"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/review-system.js"></script>
+    <script>
+        // Load product detail
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('id');
+        
+        async function loadProductDetail() {
+            if (!productId) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            const doc = await db.collection('products').doc(productId).get();
+            if (!doc.exists) {
+                Swal.fire('Error', 'Produk tidak ditemukan', 'error');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            const product = doc.data();
+            
+            // Update UI
+            document.getElementById('productTitle').textContent = product.name;
+            document.getElementById('productPrice').textContent = 'Rp ' + formatRupiah(product.price);
+            
+            if (product.discount) {
+                document.getElementById('discountBadge').style.display = 'inline';
+                document.getElementById('discountBadge').textContent = '-' + product.discount + '%';
+                const originalPrice = product.price * (100 - product.discount) / 100;
+                document.getElementById('originalPrice').textContent = 'Rp ' + formatRupiah(originalPrice);
+            }
+            
+            document.getElementById('shortDescription').textContent = product.description?.substring(0, 150) + '...';
+            document.getElementById('fullDescription').innerHTML = product.description;
+            
+            // Load images
+            if (product.images && product.images.length > 0) {
+                document.getElementById('mainImage').src = product.images[0];
+                
+                const thumbnails = document.getElementById('thumbnailList');
+                thumbnails.innerHTML = product.images.map((img, index) => `
+                    <img src="${img}" class="thumbnail ${index === 0 ? 'active' : ''}" 
+                         onclick="changeImage('${img}', this)">
+                `).join('');
+            }
+            
+            // Load reviews
+            loadReviews(productId);
+            loadRelatedProducts(product.category);
+        }
+        
+        function changeImage(src, element) {
+            document.getElementById('mainImage').src = src;
+            document.querySelectorAll('.thumbnail').forEach(t => t.classList.remove('active'));
+            element.classList.add('active');
+        }
+        
+        async function addToCart() {
+            // Check auth
+            if (!auth.currentUser) {
+                Swal.fire('Login Diperlukan', 'Silakan login terlebih dahulu', 'warning');
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            // Add to cart logic (same as in main.js)
+            const product = (await db.collection('products').doc(productId).get()).data();
+            
+            const cartRef = db.collection('carts').doc(auth.currentUser.uid);
+            const cartDoc = await cartRef.get();
+            
+            let items = cartDoc.exists ? cartDoc.data().items || [] : [];
+            const existingItem = items.find(i => i.productId === productId);
+            
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                items.push({
+                    productId: productId,
+                    name: product.name,
+                    price: product.price,
+                    discount: product.discount || 0,
+                    image: product.images?.[0] || '',
+                    quantity: 1
+                });
+            }
+            
+            await cartRef.set({ items });
+            
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: 'Produk ditambahkan ke keranjang',
+                showConfirmButton: false,
+                timer: 1500
+            });
+        }
+        
+        function buyNow() {
+            addToCart().then(() => {
+                window.location.href = 'checkout.html';
+            });
+        }
+        
+        async function addToWishlist() {
+            if (!auth.currentUser) {
+                Swal.fire('Login Diperlukan', 'Silakan login terlebih dahulu', 'warning');
+                return;
+            }
+            
+            const wishlistRef = db.collection('wishlists').doc(auth.currentUser.uid);
+            const wishlistDoc = await wishlistRef.get();
+            
+            let items = wishlistDoc.exists ? wishlistDoc.data().items || [] : [];
+            if (!items.includes(productId)) {
+                items.push(productId);
+                await wishlistRef.set({ items });
+                Swal.fire('Sukses!', 'Ditambahkan ke wishlist', 'success');
+            } else {
+                Swal.fire('Info', 'Produk sudah ada di wishlist', 'info');
+            }
+        }
+        
+        function formatRupiah(amount) {
+            return new Intl.NumberFormat('id-ID').format(amount);
+        }
+        
+        // Load on page ready
+        document.addEventListener('DOMContentLoaded', loadProductDetail);
+    </script>
+</body>
+</html>
