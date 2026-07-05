@@ -3,231 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - WebPro UMKM</title>
+    <title>Admin Panel - WebPro UMKM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { background: #f5f7fa; }
+        .sidebar { min-height: 100vh; background: linear-gradient(180deg, #2d2d2d 0%, #1a1a1a 100%); padding-top: 20px; }
+        .sidebar .nav-link { color: rgba(255,255,255,0.7); padding: 12px 20px; margin: 3px 0; border-radius: 8px; }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { color: white; background: rgba(255,255,255,0.1); }
+        .stat-card { border: none; border-radius: 15px; padding: 20px; color: white; }
+        @media (max-width: 768px) { .sidebar { min-height: auto; } }
+    </style>
 </head>
 <body>
     <div class="container-fluid">
         <div class="row">
-            <!-- Sidebar -->
-            <nav class="col-md-3 col-lg-2 d-md-block bg-dark sidebar">
-                <div class="position-sticky pt-3">
-                    <h5 class="text-white text-center mb-4">Admin Panel</h5>
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link active" href="#" data-section="dashboard">
-                                <i class="fas fa-tachometer-alt"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-section="products">
-                                <i class="fas fa-box"></i> Kelola Produk
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-section="orders">
-                                <i class="fas fa-shopping-cart"></i> Pesanan
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-section="users">
-                                <i class="fas fa-users"></i> Users
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-section="ads">
-                                <i class="fas fa-ad"></i> Iklan
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" data-section="chats">
-                                <i class="fas fa-comments"></i> Chat
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#" onclick="logout()">
-                                <i class="fas fa-sign-out-alt"></i> Logout
-                            </a>
-                        </li>
-                    </ul>
-                </div>
+            <nav class="col-md-2 sidebar">
+                <h5 class="text-white text-center mb-4">Admin Panel</h5>
+                <ul class="nav flex-column">
+                    <li><a class="nav-link active" href="#" data-section="dashboard"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                    <li><a class="nav-link" href="#" data-section="products"><i class="fas fa-box"></i> Produk</a></li>
+                    <li><a class="nav-link" href="#" data-section="orders"><i class="fas fa-receipt"></i> Pesanan</a></li>
+                    <li><a class="nav-link" href="#" data-section="ads"><i class="fas fa-ad"></i> Iklan</a></li>
+                    <li><a class="nav-link" href="#" data-section="users"><i class="fas fa-users"></i> Users</a></li>
+                    <li><a class="nav-link text-danger" href="#" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                </ul>
             </nav>
 
-            <!-- Main Content -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <!-- Dashboard Section -->
-                <div id="dashboard-section" class="section-content">
-                    <h2 class="mt-4">Dashboard Overview</h2>
-                    <div class="row mt-4">
-                        <div class="col-md-3">
-                            <div class="card bg-primary text-white">
-                                <div class="card-body">
-                                    <h5>Total Produk</h5>
-                                    <h2 id="totalProducts">0</h2>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card bg-success text-white">
-                                <div class="card-body">
-                                    <h5>Pesanan</h5>
-                                    <h2 id="totalOrders">0</h2>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card bg-warning text-white">
-                                <div class="card-body">
-                                    <h5>Pendapatan</h5>
-                                    <h2 id="totalRevenue">Rp 0</h2>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card bg-info text-white">
-                                <div class="card-body">
-                                    <h5>Users</h5>
-                                    <h2 id="totalUsers">0</h2>
-                                </div>
-                            </div>
-                        </div>
+            <main class="col-md-10 p-4">
+                <div id="dashboardSection">
+                    <h2>Dashboard Overview</h2>
+                    <div class="row g-3 mt-3">
+                        <div class="col-6 col-md-3"><div class="stat-card bg-primary"><h6>Produk</h6><h2 id="statProducts">0</h2></div></div>
+                        <div class="col-6 col-md-3"><div class="stat-card bg-success"><h6>Pesanan</h6><h2 id="statOrders">0</h2></div></div>
+                        <div class="col-6 col-md-3"><div class="stat-card bg-warning"><h6>Pendapatan</h6><h5 id="statRevenue">Rp 0</h5></div></div>
+                        <div class="col-6 col-md-3"><div class="stat-card bg-info"><h6>Users</h6><h2 id="statUsers">0</h2></div></div>
                     </div>
                 </div>
 
-                <!-- Products Section -->
-                <div id="products-section" class="section-content" style="display:none;">
-                    <div class="d-flex justify-content-between align-items-center mt-4">
-                        <h2>Kelola Produk</h2>
-                        <button class="btn btn-primary" onclick="showAddProductForm()">
-                            <i class="fas fa-plus"></i> Tambah Produk
-                        </button>
+                <div id="productsSection" style="display:none;">
+                    <div class="d-flex justify-content-between"><h2>Kelola Produk</h2><button class="btn btn-primary" onclick="showProductForm()"><i class="fas fa-plus"></i> Tambah</button></div>
+                    <div id="productForm" style="display:none;" class="card p-4 mt-3">
+                        <form id="addProductForm">
+                            <input type="hidden" id="editProductId">
+                            <div class="row">
+                                <div class="col-md-6 mb-3"><label>Nama</label><input class="form-control" id="prodName" required></div>
+                                <div class="col-md-6 mb-3"><label>Kategori</label><select class="form-select" id="prodCategory"><option value="website">Website</option><option value="landing">Landing Page</option><option value="ecommerce">E-Commerce</option><option value="company">Company Profile</option></select></div>
+                                <div class="col-md-4 mb-3"><label>Harga</label><input type="number" class="form-control" id="prodPrice" required></div>
+                                <div class="col-md-4 mb-3"><label>Diskon (%)</label><input type="number" class="form-control" id="prodDiscount" value="0"></div>
+                                <div class="col-md-4 mb-3"><label>Stok</label><input type="number" class="form-control" id="prodStock" value="999"></div>
+                                <div class="col-12 mb-3"><label>Deskripsi</label><textarea class="form-control" id="prodDescription" rows="3"></textarea></div>
+                                <div class="col-12 mb-3"><label>URL Gambar (pisahkan dengan koma)</label><input class="form-control" id="prodImages" placeholder="https://image1.jpg,https://image2.jpg"></div>
+                                <div class="col-12"><button type="submit" class="btn btn-success">Simpan</button><button type="button" class="btn btn-secondary ms-2" onclick="hideProductForm()">Batal</button></div>
+                            </div>
+                        </form>
                     </div>
-                    
-                    <!-- Product Form -->
-                    <div id="productForm" class="card mt-3" style="display:none;">
-                        <div class="card-body">
-                            <form id="addProductForm">
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <label>Nama Produk</label>
-                                        <input type="text" class="form-control" id="productName" required>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label>Kategori</label>
-                                        <select class="form-select" id="productCategory">
-                                            <option value="website">Website</option>
-                                            <option value="landing">Landing Page</option>
-                                            <option value="ecommerce">E-Commerce</option>
-                                            <option value="company">Company Profile</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-4 mb-3">
-                                        <label>Harga (Rp)</label>
-                                        <input type="number" class="form-control" id="productPrice" required>
-                                    </div>
-                                    <div class="col-md-4 mb-3">
-                                        <label>Diskon (%)</label>
-                                        <input type="number" class="form-control" id="productDiscount" value="0">
-                                    </div>
-                                    <div class="col-md-4 mb-3">
-                                        <label>Stok</label>
-                                        <input type="number" class="form-control" id="productStock" value="999">
-                                    </div>
-                                    <div class="col-12 mb-3">
-                                        <label>Deskripsi</label>
-                                        <textarea class="form-control" id="productDescription" rows="4"></textarea>
-                                    </div>
-                                    <div class="col-12 mb-3">
-                                        <label>Upload Gambar (3-5 gambar)</label>
-                                        <input type="file" class="form-control" id="productImages" multiple accept="image/*">
-                                    </div>
-                                    <div class="col-12">
-                                        <button type="submit" class="btn btn-success">Simpan</button>
-                                        <button type="button" class="btn btn-secondary" onclick="hideProductForm()">Batal</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Products Table -->
-                    <div class="table-responsive mt-3">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Gambar</th>
-                                    <th>Nama</th>
-                                    <th>Kategori</th>
-                                    <th>Harga</th>
-                                    <th>Stok</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="productsTableBody"></tbody>
-                        </table>
-                    </div>
+                    <div class="table-responsive mt-3"><table class="table table-striped"><thead><tr><th>Nama</th><th>Harga</th><th>Diskon</th><th>Aksi</th></tr></thead><tbody id="productsTable"></tbody></table></div>
                 </div>
 
-                <!-- Orders Section -->
-                <div id="orders-section" class="section-content" style="display:none;">
-                    <h2 class="mt-4">Manajemen Pesanan</h2>
-                    <div class="table-responsive mt-3">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>Order ID</th>
-                                    <th>Customer</th>
-                                    <th>Produk</th>
-                                    <th>Total</th>
-                                    <th>Pembayaran</th>
-                                    <th>Status</th>
-                                    <th>Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody id="ordersTableBody"></tbody>
-                        </table>
-                    </div>
+                <div id="ordersSection" style="display:none;">
+                    <h2>Pesanan</h2>
+                    <div class="table-responsive"><table class="table table-striped"><thead><tr><th>ID</th><th>Customer</th><th>Total</th><th>Pembayaran</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="ordersTable"></tbody></table></div>
                 </div>
 
-                <!-- Ads Section -->
-                <div id="ads-section" class="section-content" style="display:none;">
-                    <h2 class="mt-4">Kelola Iklan</h2>
-                    <div class="card mt-3">
-                        <div class="card-body">
-                            <form id="adForm">
-                                <div class="mb-3">
-                                    <label>Teks Iklan</label>
-                                    <input type="text" class="form-control" id="adText" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label>Link Iklan</label>
-                                    <input type="url" class="form-control" id="adLink">
-                                </div>
-                                <div class="mb-3">
-                                    <label>
-                                        <input type="checkbox" id="adActive"> Aktif
-                                    </label>
-                                </div>
-                                <button type="submit" class="btn btn-primary">Simpan Iklan</button>
-                            </form>
-                        </div>
-                    </div>
+                <div id="adsSection" style="display:none;">
+                    <h2>Kelola Iklan</h2>
+                    <div class="card p-4"><form id="adForm"><div class="mb-3"><label>Teks Iklan</label><input class="form-control" id="adTextInput" required></div><div class="mb-3"><label>Link</label><input class="form-control" id="adLinkInput"></div><div class="form-check mb-3"><input type="checkbox" class="form-check-input" id="adActive"><label class="form-check-label">Aktif</label></div><button type="submit" class="btn btn-primary">Simpan Iklan</button></form></div>
+                </div>
+
+                <div id="usersSection" style="display:none;">
+                    <h2>Users</h2>
+                    <div class="table-responsive"><table class="table table-striped"><thead><tr><th>Nama</th><th>Email</th><th>Role</th><th>Aksi</th></tr></thead><tbody id="usersTable"></tbody></table></div>
                 </div>
             </main>
         </div>
     </div>
 
-    <!-- Firebase SDKs -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-
-<!-- Config -->
-<script src="js/firebase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
     <script src="js/admin.js"></script>
 </body>
 </html>
