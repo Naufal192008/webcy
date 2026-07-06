@@ -1,193 +1,352 @@
-/* Custom Styles */
+/* ============================================
+   WEBPRO UMKM - GLOBAL RESPONSIVE STYLESHEET
+   Compatible: iOS Safari, Android Chrome, Desktop
+   ============================================ */
+
 :root {
-    --primary-color: #4e73df;
-    --secondary-color: #1cc88a;
-    --dark-color: #5a5c69;
+    --primary: #4e73df;
+    --primary-dark: #224abe;
+    --secondary: #764ba2;
+    --success: #1cc88a;
+    --warning: #f6c23e;
+    --danger: #e74a3b;
+    --info: #36b9cc;
+    --dark: #1a1a2e;
+    --light: #f5f7fa;
+    --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --shadow-sm: 0 2px 10px rgba(0,0,0,0.08);
+    --shadow-md: 0 5px 20px rgba(0,0,0,0.12);
+    --shadow-lg: 0 15px 40px rgba(0,0,0,0.18);
+    --radius-sm: 10px;
+    --radius-md: 15px;
+    --radius-lg: 20px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Safe area untuk iOS notch */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
 }
 
+/* ==================== RESET ==================== */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* Hero Section */
-.hero-section {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding-top: 80px;
-}
-
-.hero-section .text-primary {
-    color: #ffd700 !important;
-}
-
-/* Product Cards */
-.product-card {
-    transition: transform 0.3s, box-shadow 0.3s;
-    border: none;
-    border-radius: 15px;
-    overflow: hidden;
-}
-
-.product-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-}
-
-.product-image-container {
-    position: relative;
-    height: 200px;
-    overflow: hidden;
-}
-
-.product-image-container img {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-}
-
-.discount-badge {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    font-size: 14px;
-    padding: 5px 10px;
-}
-
-/* Chat Widget */
-.chat-widget {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    z-index: 1000;
-}
-
-.chat-box {
-    position: absolute;
-    bottom: 80px;
-    right: 0;
-    width: 350px;
-    background: white;
-    border-radius: 15px;
-    overflow: hidden;
-}
-
-.chat-header {
-    border-radius: 15px 15px 0 0;
-}
-
-/* Admin Sidebar */
-.sidebar {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    overflow-x: hidden;
+    background: var(--light);
+    color: #333;
+    line-height: 1.6;
     min-height: 100vh;
-    background: linear-gradient(180deg, #4e73df 0%, #224abe 100%) !important;
+    min-height: 100dvh;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
 }
 
-.sidebar .nav-link {
-    color: rgba(255,255,255,0.8);
-    padding: 10px 15px;
-    margin: 5px 0;
-    border-radius: 5px;
-    transition: all 0.3s;
+img {
+    max-width: 100%;
+    height: auto;
 }
 
-.sidebar .nav-link:hover,
-.sidebar .nav-link.active {
-    color: white;
-    background: rgba(255,255,255,0.1);
+a {
+    text-decoration: none;
+    transition: var(--transition);
+    -webkit-touch-callout: none;
 }
 
-/* Star Rating */
-.rating .fas.fa-star,
-.rating .fas.fa-star-half-alt {
-    color: #ffc107;
+/* ==================== SCROLLBAR ==================== */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+
+/* ==================== TYPOGRAPHY ==================== */
+h1 { font-size: clamp(1.8rem, 5vw, 3.5rem); }
+h2 { font-size: clamp(1.5rem, 4vw, 2.5rem); }
+h3 { font-size: clamp(1.2rem, 3vw, 2rem); }
+h4 { font-size: clamp(1rem, 2.5vw, 1.5rem); }
+p { font-size: clamp(0.9rem, 2vw, 1.1rem); }
+
+/* ==================== NAVBAR ==================== */
+.navbar {
+    background: rgba(255,255,255,0.95) !important;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: var(--shadow-sm);
+    padding: clamp(8px, 2vw, 15px) 0;
+    transition: var(--transition);
 }
 
-/* Loading Animation */
-.loading-spinner {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 200px;
+.navbar-brand {
+    font-weight: 800;
+    font-size: clamp(1.2rem, 3vw, 1.6rem);
+    background: var(--gradient-1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-    .hero-section {
-        text-align: center;
-    }
-    
-    .chat-box {
-        width: 300px;
-    }
-    
-    .sidebar {
-        min-height: auto;
-    }
+.navbar-brand i {
+    color: var(--primary);
+    -webkit-text-fill-color: initial;
 }
 
-/* Card Animations */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.nav-link {
+    font-weight: 600;
+    color: #555 !important;
+    margin: 0 3px;
+    font-size: clamp(0.85rem, 2vw, 0.95rem);
+    padding: 8px 12px !important;
 }
 
-.product-card {
-    animation: fadeInUp 0.5s ease-out;
+.nav-link:hover {
+    color: var(--primary) !important;
 }
 
-/* Custom Button Styles */
+/* ==================== BUTTONS ==================== */
+.btn {
+    border-radius: var(--radius-sm);
+    padding: clamp(10px, 2vw, 14px) clamp(18px, 4vw, 30px);
+    font-weight: 600;
+    transition: var(--transition);
+    font-size: clamp(0.85rem, 2.5vw, 1rem);
+    white-space: nowrap;
+    -webkit-appearance: none;
+    touch-action: manipulation;
+}
+
+.btn:active {
+    transform: scale(0.96);
+}
+
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--gradient-1);
     border: none;
+    color: white;
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 8px 25px rgba(78,115,223,0.3);
 }
 
-/* Payment Method Cards */
-.payment-method-card {
-    cursor: pointer;
-    transition: all 0.3s;
-    border: 2px solid transparent;
-}
-
-.payment-method-card:hover,
-.payment-method-card.selected {
-    border-color: var(--primary-color);
-    transform: scale(1.05);
-}
-
-/* Notification Badge */
-.notification-badge {
-    position: relative;
-}
-
-.notification-badge::after {
-    content: attr(data-count);
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: red;
+.btn-success {
+    background: var(--success);
+    border: none;
     color: white;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
+}
+
+.btn-warning {
+    background: var(--warning);
+    border: none;
+    color: #333;
+}
+
+.btn-danger {
+    background: var(--danger);
+    border: none;
+    color: white;
+}
+
+.btn-outline-primary {
+    border: 2px solid var(--primary);
+    color: var(--primary);
+    background: transparent;
+}
+
+.btn-outline-primary:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* ==================== CARDS ==================== */
+.card {
+    border: none;
+    border-radius: var(--radius-lg);
+    transition: var(--transition);
+    background: white;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* ==================== FORMS ==================== */
+.form-control,
+.form-select {
+    border-radius: var(--radius-sm);
+    padding: clamp(12px, 2.5vw, 16px) clamp(14px, 3vw, 20px);
+    border: 2px solid #e0e0e0;
+    font-size: clamp(0.9rem, 2.5vw, 1rem);
+    transition: var(--transition);
+    -webkit-appearance: none;
+    background: white;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 0.2rem rgba(78,115,223,0.15);
+    outline: none;
+}
+
+/* Fix iOS input zoom */
+@media screen and (max-width: 768px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="number"],
+    input[type="password"],
+    textarea,
+    select {
+        font-size: 16px !important;
+    }
+}
+
+/* ==================== TABLES ==================== */
+.table-responsive {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+}
+
+.table th {
+    font-weight: 700;
+    background: #f8f9fa;
+    padding: clamp(10px, 2vw, 15px);
+    white-space: nowrap;
+    font-size: clamp(0.8rem, 2vw, 0.9rem);
+}
+
+.table td {
+    padding: clamp(10px, 2vw, 15px);
+    vertical-align: middle;
+    font-size: clamp(0.8rem, 2vw, 0.93rem);
+}
+
+/* ==================== MODAL ==================== */
+.modal-dialog {
+    margin: clamp(10px, 3vw, 30px);
+}
+
+.modal-content {
+    border-radius: var(--radius-lg);
+    border: none;
+}
+
+.modal-header {
+    background: var(--gradient-1);
+    color: white;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: clamp(15px, 3vw, 20px) clamp(18px, 3vw, 25px);
+}
+
+/* ==================== ALERTS ==================== */
+.alert {
+    border-radius: var(--radius-md);
+    padding: clamp(12px, 2vw, 15px) clamp(15px, 3vw, 20px);
+    border: none;
+    font-size: clamp(0.85rem, 2vw, 0.95rem);
+}
+
+/* ==================== BADGES ==================== */
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: clamp(0.7rem, 1.8vw, 0.8rem);
+}
+
+/* ==================== UTILITIES ==================== */
+.text-primary { color: var(--primary) !important; }
+.text-success { color: var(--success) !important; }
+.text-warning { color: var(--warning) !important; }
+.text-danger { color: var(--danger) !important; }
+.bg-primary { background: var(--primary) !important; }
+.bg-success { background: var(--success) !important; }
+
+/* ==================== ANIMATIONS ==================== */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.animate-fadeInUp {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* ==================== SAFE AREA FOR iOS ==================== */
+.safe-top {
+    padding-top: var(--safe-top);
+}
+
+.safe-bottom {
+    padding-bottom: var(--safe-bottom);
+}
+
+/* ==================== TOUCH OPTIMIZATION ==================== */
+@media (hover: none) and (pointer: coarse) {
+    /* Touch device specific styles */
+    .btn, .nav-link, a {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
+}
+
+/* ==================== PRINT ==================== */
+@media print {
+    .navbar, footer, .chat-widget, .no-print {
+        display: none !important;
+    }
+    body { background: white; }
+}
+
+/* ==================== DARK MODE SUPPORT ==================== */
+@media (prefers-color-scheme: dark) {
+    /* Optional: tambahkan dark mode jika diinginkan */
+}
+
+/* ==================== RESPONSIVE BREAKPOINTS ==================== */
+
+/* Extra small devices (phones, < 576px) */
+@media (max-width: 575.98px) {
+    .container { padding-left: 12px; padding-right: 12px; }
+    .hide-mobile { display: none !important; }
+}
+
+/* Small devices (phones, 576px - 767px) */
+@media (min-width: 576px) and (max-width: 767.98px) {
+    .container { max-width: 100%; }
+}
+
+/* Medium devices (tablets, 768px - 991px) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .container { max-width: 720px; }
+}
+
+/* Large devices (desktops, 992px - 1199px) */
+@media (min-width: 992px) and (max-width: 1199.98px) {
+    .container { max-width: 960px; }
+}
+
+/* Extra large devices (large desktops, > 1200px) */
+@media (min-width: 1200px) {
+    .container { max-width: 1140px; }
 }
