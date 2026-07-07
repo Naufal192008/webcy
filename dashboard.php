@@ -308,7 +308,7 @@ foreach ($notifications as $n) { if (!$n['is_read']) $unreadNotifications++; }
 </head>
 <body>
 
-    <!-- SIDEBAR -->
+    <!-- SIDEBAR - TANPA MENU ADMIN PANEL -->
     <div class="sidebar">
         <div class="sidebar-header">
             <div class="user-avatar"><?= strtoupper(substr($user['full_name'], 0, 2)) ?></div>
@@ -329,11 +329,6 @@ foreach ($notifications as $n) { if (!$n['is_read']) $unreadNotifications++; }
             <div class="nav-label">Fitur Keren</div>
             <a href="spin-wheel.php"><i class="fas fa-dharmachakra"></i> 🎡 Spin Diskon</a>
             <a href="leaderboard.php"><i class="fas fa-trophy"></i> 🏆 Leaderboard</a>
-            
-            <?php if ($user['role'] === 'admin'): ?>
-            <div class="nav-label">Admin</div>
-            <a href="admin.php" style="color:#FFD700;"><i class="fas fa-crown"></i> Admin Panel</a>
-            <?php endif; ?>
             
             <div class="nav-label">Lainnya</div>
             <a href="logout.php" style="color:#e74a3b;"><i class="fas fa-sign-out-alt"></i> Logout</a>
