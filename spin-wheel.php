@@ -3,7 +3,94 @@ require_once 'config/database.php';
 checkAuth();
 
 $userId = $_SESSION['user_id'];
+$isAdmin = ($_SESSION['user_role'] ?? '') === 'admin';
 $today = date('Y-m-d');
+
+// ==================== ADMIN: HANDLE ACTIONS ====================
+if ($isAdmin && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+    
+    // Reset spin untuk user tertentu
+    if ($action === 'reset_spin') {
+        $targetUserId = (int)$_POST['user_id'];
+        $pdo->prepare("UPDATE spin_history SET is_used = 2 WHERE user_id = ? AND is_used = 0")->execute([$targetUserId]);
+        redirect('spin-wheel.php?admin=1', '✅ Spin user berhasil direset!');
+    }
+    
+    // Hapus history spin
+    if ($action === 'delete_spin') {
+        $spinId = (int)$_POST['spin_id'];
+        $pdo->prepare("DELETE FROM spin_history WHERE id = ?")->execute([$spinId]);
+        redirect('spin-wheel.php?admin=1', '🗑️ History spin dihapus!');
+    }
+    
+    // Hapus semua history spin (clear all)
+    if ($action === 'clear_all_spins') {
+        $pdo->query("DELETE FROM spin_history");
+        redirect('spin-wheel.php?admin=1', '🗑️ Semua history spin dihapus!');
+    }
+    
+    // Tambah spin manual untuk user
+    if ($action === 'add_spin_manual') {
+        $targetUserId = (int)$_POST['user_id'];
+        $discount = (int)$_POST['discount'];
+        $label = 'Diskon ' . $discount . '%';
+        $expiryDate = date('Y-m-d', strtotime('+' . ($_POST['expiry_days'] ?? 30) . ' days'));
+        
+        $stmt = $pdo->prepare("INSERT INTO spin_history (user_id, discount, prize_label, spin_date, expiry_date, is_used) VALUES (?, ?, ?, NOW(), ?, 0)");
+        $stmt->execute([$targetUserId, $discount, $label, $expiryDate]);
+        redirect('spin-wheel.php?admin=1', '✅ Diskon manual diberikan ke user!');
+    }
+    
+    // Update konfigurasi spin
+    if ($action === 'update_config') {
+        $minDiscount = (int)$_POST['min_discount'];
+        $maxDiscount = (int)$_POST['max_discount'];
+        $expiryDays = (int)$_POST['expiry_days'];
+        $minSpentToSpin = (int)$_POST['min_spent'];
+        $cooldownDays = (int)$_POST['cooldown_days'];
+        $maxSpinsPerDay = (int)$_POST['max_spins_per_day'];
+        
+        $config = json_encode([
+            'min_discount' => $minDiscount,
+            'max_discount' => $maxDiscount,
+            'expiry_days' => $expiryDays,
+            'min_spent' => $minSpentToSpin,
+            'cooldown_days' => $cooldownDays,
+            'max_spins_per_day' => $maxSpinsPerDay
+        ]);
+        file_put_contents('spin_config.json', $config);
+        redirect('spin-wheel.php?admin=1', '✅ Konfigurasi spin diperbarui!');
+    }
+    
+    // Update status spin (mark as used/unused)
+    if ($action === 'toggle_spin_status') {
+        $spinId = (int)$_POST['spin_id'];
+        $stmt = $pdo->prepare("UPDATE spin_history SET is_used = IF(is_used=1, 0, 1) WHERE id = ?");
+        $stmt->execute([$spinId]);
+        redirect('spin-wheel.php?admin=1', '✅ Status spin diubah!');
+    }
+    
+    // Hapus semua spin untuk user tertentu
+    if ($action === 'clear_user_spins') {
+        $targetUserId = (int)$_POST['user_id'];
+        $pdo->prepare("DELETE FROM spin_history WHERE user_id = ?")->execute([$targetUserId]);
+        redirect('spin-wheel.php?admin=1', '🗑️ Semua spin user dihapus!');
+    }
+}
+
+// ==================== LOAD CONFIG ====================
+$spinConfig = [
+    'min_discount' => 5,
+    'max_discount' => 50,
+    'expiry_days' => 30,
+    'min_spent' => 1000000,
+    'cooldown_days' => 1,
+    'max_spins_per_day' => 1
+];
+if (file_exists('spin_config.json')) {
+    $spinConfig = array_merge($spinConfig, json_decode(file_get_contents('spin_config.json'), true) ?: []);
+}
 
 // ==================== CEK DISKON AKTIF ====================
 $stmt = $pdo->prepare("SELECT * FROM spin_history WHERE user_id = ? AND is_used = 0 AND discount > 0 AND expiry_date >= ? ORDER BY spin_date DESC LIMIT 1");
@@ -27,7 +114,7 @@ if ($activeDiscount) {
         $now = new DateTime();
         $diffDays = $lastSpinDate->diff($now)->days;
         
-        if ($lastSpin['discount'] == 0 && $diffDays < 1) {
+        if ($lastSpin['discount'] == 0 && $diffDays < $spinConfig['cooldown_days']) {
             $canSpin = false;
             $spinMessage = 'Kamu sudah spin hari ini. Coba lagi besok!';
         } elseif ($lastSpin['discount'] > 0 && $lastSpin['is_used'] == 0 && $lastSpin['expiry_date'] >= $today) {
@@ -38,14 +125,14 @@ if ($activeDiscount) {
             $stmt->execute([$userId, $lastSpin['expiry_date']]);
             $spentAfterExpiry = $stmt->fetchColumn();
             
-            if ($spentAfterExpiry >= 1000000) {
+            if ($spentAfterExpiry >= $spinConfig['min_spent']) {
                 $canSpin = true;
             } else {
                 $waitUntil = new DateTime($lastSpin['expiry_date']);
                 $waitUntil->modify('+2 months');
                 if ($now < $waitUntil) {
                     $canSpin = false;
-                    $spinMessage = 'Diskon hangus. Bisa spin lagi setelah <strong>' . $waitUntil->format('d M Y') . '</strong> atau belanja > Rp 1.000.000';
+                    $spinMessage = 'Diskon hangus. Bisa spin lagi setelah <strong>' . $waitUntil->format('d M Y') . '</strong> atau belanja > Rp ' . number_format($spinConfig['min_spent'], 0, ',', '.');
                 }
             }
         } elseif ($lastSpin['discount'] > 0 && $lastSpin['is_used'] == 1) {
@@ -53,18 +140,18 @@ if ($activeDiscount) {
             $stmt->execute([$userId, $lastSpin['used_at'] ?? $lastSpin['spin_date']]);
             $spentAfterUse = $stmt->fetchColumn();
             
-            if ($spentAfterUse >= 1000000) {
+            if ($spentAfterUse >= $spinConfig['min_spent']) {
                 $canSpin = true;
             } else {
                 $canSpin = false;
-                $spinMessage = 'Diskon sudah dipakai. Belanja > Rp 1.000.000 untuk spin lagi!';
+                $spinMessage = 'Diskon sudah dipakai. Belanja > Rp ' . number_format($spinConfig['min_spent'], 0, ',', '.') . ' untuk spin lagi!';
             }
         }
     }
 }
 
-// ==================== HANDLE SPIN ====================
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSpin) {
+// ==================== HANDLE SPIN (USER) ====================
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSpin && !isset($_POST['action'])) {
     $prizes = [
         ['discount' => 5, 'label' => 'Diskon 5%', 'color' => '#FF6B6B'],
         ['discount' => 10, 'label' => 'Diskon 10%', 'color' => '#4ECDC4'],
@@ -84,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSpin) {
     foreach ($weights as $i => $w) { $cumulative += $w; if ($random <= $cumulative) { $selectedIndex = $i; break; } }
     
     $prize = $prizes[$selectedIndex];
-    $expiryDate = date('Y-m-d', strtotime('+1 month'));
+    $expiryDate = date('Y-m-d', strtotime('+' . $spinConfig['expiry_days'] . ' days'));
     
     $stmt = $pdo->prepare("INSERT INTO spin_history (user_id, discount, prize_label, spin_date, expiry_date, is_used) VALUES (?, ?, ?, NOW(), ?, 0)");
     $stmt->execute([$userId, $prize['discount'], $prize['label'], $expiryDate]);
@@ -93,538 +180,220 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $canSpin) {
     exit;
 }
 
+// Total belanja
 $stmt = $pdo->prepare("SELECT COALESCE(SUM(total_price), 0) FROM orders WHERE user_id = ? AND status IN ('paid', 'completed')");
 $stmt->execute([$userId]);
 $totalSpent = $stmt->fetchColumn();
+
+// ==================== ADMIN DATA ====================
+$allSpins = [];
+$userSpinStats = [];
+$allUsers = [];
+$showAdmin = isset($_GET['admin']) && $isAdmin;
+
+if ($showAdmin) {
+    $allSpins = $pdo->query("SELECT s.*, u.full_name, u.email FROM spin_history s LEFT JOIN users u ON s.user_id = u.id ORDER BY s.spin_date DESC LIMIT 200")->fetchAll();
+    $userSpinStats = $pdo->query("SELECT u.id, u.full_name, u.email, COUNT(s.id) as total_spins, SUM(CASE WHEN s.discount > 0 THEN 1 ELSE 0 END) as wins, MAX(s.spin_date) as last_spin FROM users u LEFT JOIN spin_history s ON u.id = s.user_id WHERE u.role = 'user' GROUP BY u.id ORDER BY total_spins DESC")->fetchAll();
+    $allUsers = $pdo->query("SELECT id, full_name, email FROM users WHERE role = 'user' ORDER BY full_name")->fetchAll();
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🎡 Spin Wheel Diskon - WebPro UMKM</title>
+    <title>🎡 Spin Wheel - WebPro UMKM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-        :root {
-            --bg: #1a1a2e;
-            --card-bg: rgba(255,255,255,0.05);
-            --gold: #FFD700;
-            --text: #ffffff;
-            --text-dim: rgba(255,255,255,0.6);
-            --wheel-size: min(340px, 80vw);
-        }
-        
+        :root { --bg: #1a1a2e; --gold: #FFD700; --wheel-size: min(340px, 80vw); --text: #ffffff; --text-dim: rgba(255,255,255,0.6); }
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            background: linear-gradient(135deg, #0f0c29, #1a1a2e, #16213e);
-            min-height: 100vh;
-            min-height: 100dvh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: var(--text);
-            padding: 15px;
-            overflow-x: hidden;
-        }
-        
-        .stars-bg {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none;
-            z-index: 0;
-        }
-        
-        .star {
-            position: absolute;
-            background: white;
-            border-radius: 50%;
-            animation: twinkle var(--duration) infinite;
-            animation-delay: var(--delay);
-            opacity: 0;
-        }
-        
-        @keyframes twinkle {
-            0%, 100% { opacity: 0.2; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.5); }
-        }
-        
-        .container-box {
-            position: relative;
-            z-index: 1;
-            background: var(--card-bg);
-            border-radius: 25px;
-            padding: clamp(20px, 5vw, 40px);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.1);
-            width: 100%;
-            max-width: 600px;
-            text-align: center;
-            animation: fadeInUp 0.6s ease;
-        }
-        
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        h1 {
-            font-weight: 900;
-            font-size: clamp(1.4rem, 4vw, 2rem);
-            background: linear-gradient(135deg, var(--gold), #FFA500);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 5px;
-        }
-        
-        .subtitle {
-            color: var(--text-dim);
-            margin-bottom: 20px;
-            font-size: clamp(0.8rem, 2.5vw, 0.95rem);
-        }
-        
-        /* WHEEL CONTAINER */
-        .wheel-outer {
-            position: relative;
-            display: inline-block;
-            margin: 10px auto;
-        }
-        
-        canvas {
-            border-radius: 50%;
-            box-shadow: 
-                0 0 40px rgba(255,215,0,0.2),
-                0 0 80px rgba(120,80,220,0.12),
-                inset 0 0 30px rgba(0,0,0,0.3);
-            width: var(--wheel-size);
-            height: var(--wheel-size);
-            max-width: 100%;
-        }
-        
-        .pointer-arrow {
-            position: absolute;
-            top: -15px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: clamp(2rem, 6vw, 2.5rem);
-            color: var(--gold);
-            z-index: 10;
-            filter: drop-shadow(0 0 8px rgba(255,215,0,0.7));
-            animation: pointerBounce 1.2s infinite;
-            line-height: 1;
-        }
-        
-        @keyframes pointerBounce {
-            0%, 100% { transform: translateX(-50%) translateY(0); }
-            50% { transform: translateX(-50%) translateY(-8px); }
-        }
-        
-        /* BUTTONS */
-        .btn-spin {
-            background: linear-gradient(135deg, var(--gold), #FFA500);
-            color: #1a1a2e;
-            border: none;
-            padding: clamp(12px, 3vw, 16px) clamp(30px, 8vw, 55px);
-            border-radius: 50px;
-            font-size: clamp(1rem, 3vw, 1.2rem);
-            font-weight: 800;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin: 15px 0;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            box-shadow: 0 8px 25px rgba(255,215,0,0.3);
-            width: auto;
-            max-width: 100%;
-        }
-        
-        .btn-spin:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 12px 35px rgba(255,215,0,0.5);
-        }
-        
-        .btn-spin:disabled {
-            background: #555;
-            color: #999;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-        
-        .btn-shop {
-            display: inline-block;
-            background: var(--gold);
-            color: #1a1a2e;
-            border-radius: 50px;
-            padding: clamp(10px, 2.5vw, 14px) clamp(20px, 5vw, 35px);
-            text-decoration: none;
-            font-weight: 700;
-            transition: all 0.3s;
-            margin: 8px 4px;
-            font-size: clamp(0.85rem, 2.5vw, 1rem);
-        }
-        
-        .btn-shop:hover { background: #FFA500; transform: scale(1.03); color: #1a1a2e; }
-        
-        .btn-back {
-            display: inline-block;
-            color: var(--text-dim);
-            border: 1px solid rgba(255,255,255,0.25);
-            border-radius: 50px;
-            padding: clamp(8px, 2vw, 10px) clamp(18px, 4vw, 28px);
-            text-decoration: none;
-            transition: all 0.3s;
-            margin-top: 10px;
-            font-weight: 500;
-            font-size: clamp(0.8rem, 2.5vw, 0.9rem);
-        }
-        
-        .btn-back:hover {
-            background: rgba(255,255,255,0.08);
-            color: white;
-            border-color: rgba(255,255,255,0.5);
-        }
-        
-        /* CARDS */
-        .info-card {
-            background: rgba(255,255,255,0.07);
-            border-radius: 18px;
-            padding: clamp(15px, 3vw, 20px);
-            margin: 15px 0;
-            text-align: left;
-            border: 1px solid rgba(255,255,255,0.08);
-        }
-        
-        .info-card h5 { margin-bottom: 10px; font-weight: 700; }
-        
-        .discount-show {
-            background: linear-gradient(135deg, var(--gold), #FFA500);
-            color: #1a1a2e;
-            padding: clamp(14px, 3vw, 18px);
-            border-radius: 18px;
-            margin: 15px 0;
-            font-weight: 900;
-            font-size: clamp(1.3rem, 4vw, 1.8rem);
-            text-align: center;
-            word-break: break-word;
-        }
-        
-        .expiry-tag {
-            display: inline-block;
-            background: rgba(255,255,255,0.1);
-            padding: 6px 18px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: clamp(0.75rem, 2vw, 0.9rem);
-        }
-        
-        /* RULES */
-        .rules-box {
-            text-align: left;
-            background: rgba(255,255,255,0.03);
-            padding: clamp(14px, 3vw, 18px) clamp(16px, 3vw, 22px);
-            border-radius: 15px;
-            margin-top: 15px;
-            font-size: clamp(0.75rem, 2vw, 0.88rem);
-            line-height: 1.7;
-        }
-        
-        .rules-box h6 { font-weight: 700; margin-bottom: 8px; color: var(--gold); }
-        .rules-box ul { list-style: none; padding: 0; }
-        .rules-box ul li { padding: 3px 0; }
-        .rules-box ul li::before { content: '•'; color: var(--gold); font-weight: bold; margin-right: 8px; }
-        
-        /* COLORS */
-        .text-gold { color: var(--gold); }
-        .text-green { color: #1cc88a; }
-        .text-red { color: #e74a3b; }
-        .text-blue { color: #36b9cc; }
-        
-        /* RESULT AREA */
-        #resultArea { min-height: 20px; }
-        
-        @media (max-width: 400px) {
-            :root { --wheel-size: 260px; }
-            .container-box { padding: 15px 12px; border-radius: 18px; }
-            .info-card { padding: 12px; }
-            .btn-spin { padding: 14px 35px; font-size: 0.95rem; }
-        }
-        
-        @media (min-width: 768px) {
-            :root { --wheel-size: 380px; }
-        }
+        body { background: linear-gradient(135deg, #0f0c29, #1a1a2e, #16213e); min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: 'Segoe UI', sans-serif; color: var(--text); padding: 15px; }
+        .container-box { background: rgba(255,255,255,0.05); border-radius: 25px; padding: clamp(20px, 5vw, 40px); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); max-width: 800px; width: 100%; text-align: center; }
+        h1 { font-weight: 900; font-size: clamp(1.4rem, 4vw, 2rem); background: linear-gradient(135deg, var(--gold), #FFA500); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 5px; }
+        .subtitle { color: var(--text-dim); margin-bottom: 20px; font-size: 0.9rem; }
+        .wheel-outer { position: relative; display: inline-block; margin: 10px auto; }
+        canvas { border-radius: 50%; box-shadow: 0 0 40px rgba(255,215,0,0.2); width: var(--wheel-size); height: var(--wheel-size); }
+        .pointer-arrow { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-size: 2.5rem; color: var(--gold); z-index: 10; animation: bounce 1.2s infinite; }
+        @keyframes bounce { 0%,100%{transform:translateX(-50%) translateY(0);} 50%{transform:translateX(-50%) translateY(-8px);} }
+        .btn-spin { background: linear-gradient(135deg, var(--gold), #FFA500); color: #1a1a2e; border: none; padding: 14px 45px; border-radius: 50px; font-size: 1.1rem; font-weight: 800; cursor: pointer; transition: 0.3s; margin: 15px 0; text-transform: uppercase; letter-spacing: 2px; }
+        .btn-spin:hover:not(:disabled) { transform: scale(1.05); box-shadow: 0 10px 30px rgba(255,215,0,0.4); }
+        .btn-spin:disabled { background: #555; color: #999; cursor: not-allowed; }
+        .btn-back { display: inline-block; color: var(--text-dim); border: 1px solid rgba(255,255,255,0.25); border-radius: 50px; padding: 8px 22px; text-decoration: none; margin: 5px; transition: 0.3s; font-size: 0.85rem; }
+        .btn-back:hover { background: rgba(255,255,255,0.08); color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 0.75rem; border-radius: 20px; }
+        .info-card { background: rgba(255,255,255,0.07); border-radius: 15px; padding: 18px; margin: 12px 0; text-align: left; border: 1px solid rgba(255,255,255,0.08); }
+        .discount-show { background: linear-gradient(135deg, var(--gold), #FFA500); color: #1a1a2e; padding: 16px; border-radius: 15px; font-weight: 900; font-size: 1.6rem; text-align: center; }
+        .admin-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; color: white; }
+        .admin-table th, .admin-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left; }
+        .admin-table th { color: var(--gold); font-weight: 700; background: rgba(255,255,255,0.05); position: sticky; top: 0; }
+        .admin-table input, .admin-table select { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 6px 10px; border-radius: 6px; font-size: 0.8rem; }
+        .scroll-box { max-height: 350px; overflow-y: auto; border-radius: 10px; }
+        .badge-status { padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .text-gold { color: var(--gold); } .text-warning { color: #f6c23e; }
+        @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
-
-    <!-- Stars Background -->
-    <div class="stars-bg" id="starsBg"></div>
-
     <div class="container-box">
-        
         <h1>🎡 SPIN & WIN DISKON!</h1>
-        <p class="subtitle">Putar roda keberuntungan & dapatkan diskon hingga 50%!</p>
+        <p class="subtitle">Putar roda & dapatkan diskon hingga 50%!</p>
         
-        <!-- ========== DISKON AKTIF ========== -->
-        <?php if ($activeDiscount): ?>
+        <?php if ($showAdmin): ?>
+        <!-- ==================== ADMIN PANEL ==================== -->
+        <div class="info-card">
+            <h5 class="text-warning"><i class="fas fa-cog"></i> Admin - Konfigurasi Spin</h5>
+            <form method="POST" class="row g-2">
+                <input type="hidden" name="action" value="update_config">
+                <div class="col-4"><label class="small">Min Diskon (%)</label><input type="number" name="min_discount" class="form-control form-control-sm" value="<?= $spinConfig['min_discount'] ?>" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);"></div>
+                <div class="col-4"><label class="small">Max Diskon (%)</label><input type="number" name="max_discount" class="form-control form-control-sm" value="<?= $spinConfig['max_discount'] ?>" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);"></div>
+                <div class="col-4"><label class="small">Expiry (hari)</label><input type="number" name="expiry_days" class="form-control form-control-sm" value="<?= $spinConfig['expiry_days'] ?>" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);"></div>
+                <div class="col-4"><label class="small">Min Belanja (Rp)</label><input type="number" name="min_spent" class="form-control form-control-sm" value="<?= $spinConfig['min_spent'] ?>" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);"></div>
+                <div class="col-4"><label class="small">Cooldown (hari)</label><input type="number" name="cooldown_days" class="form-control form-control-sm" value="<?= $spinConfig['cooldown_days'] ?>" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);"></div>
+                <div class="col-4"><label class="small">Max Spin/hari</label><input type="number" name="max_spins_per_day" class="form-control form-control-sm" value="<?= $spinConfig['max_spins_per_day'] ?>" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);"></div>
+                <div class="col-12"><button type="submit" class="btn btn-warning btn-sm w-100 mt-2"><i class="fas fa-save"></i> Simpan Konfigurasi</button></div>
+            </form>
+        </div>
+        
+        <!-- ADD SPIN MANUAL -->
+        <div class="info-card">
+            <h5 class="text-warning"><i class="fas fa-gift"></i> Beri Diskon Manual ke User</h5>
+            <form method="POST" class="row g-2">
+                <input type="hidden" name="action" value="add_spin_manual">
+                <div class="col-4"><label class="small">User</label><select name="user_id" class="form-select form-select-sm" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);"><?php foreach ($allUsers as $u): ?><option value="<?= $u['id'] ?>"><?= escape($u['full_name']) ?></option><?php endforeach; ?></select></div>
+                <div class="col-3"><label class="small">Diskon (%)</label><input type="number" name="discount" class="form-control form-control-sm" value="10" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);"></div>
+                <div class="col-3"><label class="small">Expiry (hari)</label><input type="number" name="expiry_days" class="form-control form-control-sm" value="30" style="background:rgba(255,255,255,0.1);color:white;border:1px solid rgba(255,255,255,0.2);"></div>
+                <div class="col-2 d-flex align-items-end"><button type="submit" class="btn btn-success btn-sm w-100"><i class="fas fa-plus"></i></button></div>
+            </form>
+        </div>
+        
+        <!-- HISTORY SPIN -->
+        <div class="grid-2">
+            <div class="info-card">
+                <h5 class="text-warning"><i class="fas fa-list"></i> History Spin (<?= count($allSpins) ?>)</h5>
+                <div class="scroll-box">
+                    <table class="admin-table">
+                        <thead><tr><th>User</th><th>Hasil</th><th>Tgl</th><th>Status</th><th>Aksi</th></tr></thead>
+                        <tbody>
+                            <?php if (empty($allSpins)): ?><tr><td colspan="5" class="text-center py-3">Belum ada data</td></tr>
+                            <?php else: foreach ($allSpins as $s): ?>
+                            <tr>
+                                <td><small><?= escape($s['full_name'] ?? 'User #'.$s['user_id']) ?></small></td>
+                                <td><strong><?= $s['prize_label'] ?></strong></td>
+                                <td><small><?= date('d/m', strtotime($s['spin_date'])) ?></small></td>
+                                <td><span class="badge-status bg-<?= $s['is_used']==1?'success':($s['is_used']==0?'warning':'secondary') ?>"><?= $s['is_used']==1?'✅':($s['is_used']==0?'🕐':'🔄') ?></span></td>
+                                <td>
+                                    <form method="POST" style="display:inline;"><input type="hidden" name="action" value="toggle_spin_status"><input type="hidden" name="spin_id" value="<?= $s['id'] ?>"><button class="btn btn-sm btn-info" title="Toggle Status" style="padding:2px 6px;font-size:0.7rem;"><i class="fas fa-exchange-alt"></i></button></form>
+                                    <form method="POST" style="display:inline;"><input type="hidden" name="action" value="delete_spin"><input type="hidden" name="spin_id" value="<?= $s['id'] ?>"><button class="btn btn-sm btn-danger" onclick="return confirm('Hapus?')" style="padding:2px 6px;font-size:0.7rem;"><i class="fas fa-trash"></i></button></form>
+                                </td>
+                            </tr>
+                            <?php endforeach; endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <form method="POST" class="mt-2"><input type="hidden" name="action" value="clear_all_spins"><button type="submit" class="btn btn-danger btn-sm w-100" onclick="return confirm('Hapus SEMUA history spin?')"><i class="fas fa-trash"></i> Hapus Semua History</button></form>
+            </div>
+            
+            <!-- USER STATS -->
+            <div class="info-card">
+                <h5 class="text-warning"><i class="fas fa-chart-bar"></i> Statistik User (<?= count($userSpinStats) ?>)</h5>
+                <div class="scroll-box">
+                    <table class="admin-table">
+                        <thead><tr><th>User</th><th>Spin</th><th>Win</th><th>Rate</th><th>Aksi</th></tr></thead>
+                        <tbody>
+                            <?php foreach ($userSpinStats as $stat): ?>
+                            <tr>
+                                <td><small><?= escape($stat['full_name']) ?></small></td>
+                                <td><?= $stat['total_spins'] ?></td>
+                                <td><?= $stat['wins'] ?></td>
+                                <td><?= $stat['total_spins'] > 0 ? round($stat['wins']/$stat['total_spins']*100) : 0 ?>%</td>
+                                <td>
+                                    <form method="POST" style="display:inline;"><input type="hidden" name="action" value="reset_spin"><input type="hidden" name="user_id" value="<?= $stat['id'] ?>"><button class="btn btn-sm btn-warning" title="Reset Spin" style="padding:2px 6px;font-size:0.7rem;"><i class="fas fa-undo"></i></button></form>
+                                    <form method="POST" style="display:inline;"><input type="hidden" name="action" value="clear_user_spins"><input type="hidden" name="user_id" value="<?= $stat['id'] ?>"><button class="btn btn-sm btn-danger" onclick="return confirm('Hapus semua spin user ini?')" style="padding:2px 6px;font-size:0.7rem;"><i class="fas fa-trash"></i></button></form>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <a href="spin-wheel.php" class="btn-back">👤 Mode User</a>
+        
+        <?php elseif ($activeDiscount): ?>
+        <!-- USER: Diskon Aktif -->
         <div class="info-card text-center">
-            <h5 class="text-gold"><i class="fas fa-ticket-alt"></i> Kamu Punya Diskon Aktif!</h5>
+            <h5 class="text-warning"><i class="fas fa-ticket-alt"></i> Diskon Aktif!</h5>
             <div class="discount-show"><?= $activeDiscount['prize_label'] ?></div>
-            <p>⏰ Berlaku sampai: <strong><?= date('d M Y', strtotime($activeDiscount['expiry_date'])) ?></strong></p>
-            <p class="text-blue"><i class="fas fa-info-circle"></i> Diskon otomatis dipotong saat checkout.</p>
-            <a href="index.php" class="btn-shop">🛒 Belanja Sekarang</a>
+            <p class="mt-2">⏰ Berlaku sampai: <strong><?= date('d M Y', strtotime($activeDiscount['expiry_date'])) ?></strong></p>
+            <p>💰 Diskon otomatis dipotong saat checkout!</p>
+            <a href="index.php" class="btn btn-warning rounded-pill px-4">🛒 Belanja Sekarang</a>
         </div>
-        <?php endif; ?>
         
-        <!-- ========== TIDAK BISA SPIN ========== -->
-        <?php if ($spinMessage && !$activeDiscount): ?>
+        <?php elseif ($spinMessage && !$activeDiscount): ?>
+        <!-- USER: Tidak Bisa Spin -->
         <div class="info-card text-center">
-            <h5 class="text-gold"><i class="fas fa-info-circle"></i> Info Spin</h5>
+            <h5 class="text-warning"><i class="fas fa-info-circle"></i> Info</h5>
             <p><?= $spinMessage ?></p>
-            <p class="text-blue">💰 Total belanja: <strong>Rp <?= number_format($totalSpent, 0, ',', '.') ?></strong></p>
-            <?php if ($totalSpent < 1000000): ?>
-            <p style="font-size:0.85rem;opacity:0.7;">Belanja > Rp 1.000.000 untuk spin!</p>
-            <?php endif; ?>
-            <a href="index.php" class="btn-shop">🛒 Belanja Dulu</a>
-        </div>
-        <?php endif; ?>
-        
-        <!-- ========== WHEEL ========== -->
-        <?php if ($canSpin): ?>
-        <div class="wheel-outer">
-            <div class="pointer-arrow">▼</div>
-            <canvas id="wheelCanvas"></canvas>
+            <p>💰 Total belanja: <strong>Rp <?= number_format($totalSpent, 0, ',', '.') ?></strong></p>
+            <a href="index.php" class="btn btn-warning rounded-pill px-4">🛒 Belanja Dulu</a>
         </div>
         
+        <?php else: ?>
+        <!-- USER: Wheel -->
+        <div class="wheel-outer"><div class="pointer-arrow">▼</div><canvas id="wheelCanvas"></canvas></div>
         <div id="resultArea"></div>
-        
         <button class="btn-spin" id="spinButton" onclick="startSpin()">🎰 SPIN SEKARANG!</button>
         <?php endif; ?>
         
-        <!-- ========== RULES ========== -->
-        <div class="rules-box">
-            <h6>📋 Aturan Spin Wheel:</h6>
-            <ul>
-                <li>Dapatkan diskon acak <strong>5% - 50%</strong></li>
-                <li>Diskon berlaku <strong>1 bulan</strong> sejak didapat</li>
-                <li>Diskon hanya <strong>1 kali pakai</strong> saat checkout</li>
-                <li>Diskon hangus jika tidak dipakai dalam 1 bulan</li>
-                <li><strong>Belanja > Rp 1.000.000</strong> untuk spin lagi</li>
-                <li>Jika diskon hangus, tunggu <strong>2 bulan</strong> untuk spin gratis</li>
+        <!-- Rules -->
+        <div class="info-card" style="font-size:0.85rem;">
+            <h6 class="text-gold">📋 Aturan:</h6>
+            <ul style="padding-left:18px;">
+                <li>Diskon acak 5% - 50%</li>
+                <li>Berlaku <?= $spinConfig['expiry_days'] ?> hari</li>
+                <li>1 kali pakai saat checkout</li>
+                <li>Belanja > Rp <?= number_format($spinConfig['min_spent'], 0, ',', '.') ?> untuk spin lagi</li>
             </ul>
         </div>
         
-        <a href="index.php" class="btn-back"><i class="fas fa-arrow-left"></i> Kembali ke Beranda</a>
-        
+        <?php if ($isAdmin && !$showAdmin): ?><a href="?admin=1" class="btn-back">🔧 Admin Mode</a><?php endif; ?>
+        <a href="index.php" class="btn-back"><i class="fas fa-arrow-left"></i> Kembali</a>
     </div>
 
     <script>
-    // ==================== STARS BACKGROUND ====================
-    (function() {
-        const container = document.getElementById('starsBg');
-        const count = 80;
-        let html = '';
-        for (let i = 0; i < count; i++) {
-            const size = Math.random() * 3 + 1;
-            const x = Math.random() * 100;
-            const y = Math.random() * 100;
-            const duration = Math.random() * 3 + 2;
-            const delay = Math.random() * 3;
-            html += `<div class="star" style="left:${x}%;top:${y}%;width:${size}px;height:${size}px;--duration:${duration}s;--delay:${delay}s;"></div>`;
-        }
-        container.innerHTML = html;
-    })();
-    
-    <?php if ($canSpin): ?>
-    
-    // ==================== WHEEL SETUP ====================
+    <?php if ($canSpin && !$showAdmin && !$activeDiscount): ?>
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
-    
-    // Sesuaikan ukuran canvas dengan CSS variabel
-    function resizeCanvas() {
-        const style = getComputedStyle(document.documentElement);
-        const size = parseInt(style.getPropertyValue('--wheel-size'));
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = size * dpr;
-        canvas.height = size * dpr;
-        canvas.style.width = size + 'px';
-        canvas.style.height = size + 'px';
-        ctx.scale(dpr, dpr);
-        drawWheel();
-    }
-    
     const segments = [
-        { label: '5%', color: '#FF6B6B', discount: 5 },
-        { label: '10%', color: '#4ECDC4', discount: 10 },
-        { label: '15%', color: '#45B7D1', discount: 15 },
-        { label: '20%', color: '#96CEB4', discount: 20 },
-        { label: '25%', color: '#FFEAA7', discount: 25 },
-        { label: '30%', color: '#DDA0DD', discount: 30 },
-        { label: '50%', color: '#FFD700', discount: 50 },
-        { label: '😅', color: '#98D8C8', discount: 0 },
+        { label: '5%', color: '#FF6B6B', discount: 5 }, { label: '10%', color: '#4ECDC4', discount: 10 },
+        { label: '15%', color: '#45B7D1', discount: 15 }, { label: '20%', color: '#96CEB4', discount: 20 },
+        { label: '25%', color: '#FFEAA7', discount: 25 }, { label: '30%', color: '#DDA0DD', discount: 30 },
+        { label: '50%', color: '#FFD700', discount: 50 }, { label: '😅', color: '#98D8C8', discount: 0 },
     ];
+    const n = segments.length, arc = (2*Math.PI)/n;
+    let rot = 0, spinning = false;
     
-    const numSegments = segments.length;
-    const arcSize = (2 * Math.PI) / numSegments;
-    let currentRotation = 0;
-    let isSpinning = false;
-    
-    function getSize() {
-        const style = getComputedStyle(document.documentElement);
-        return parseInt(style.getPropertyValue('--wheel-size'));
+    function getSize() { return parseInt(getComputedStyle(document.documentElement).getPropertyValue('--wheel-size')); }
+    function draw() {
+        const s = getSize(), cx = s/2, cy = s/2, r = s/2-10;
+        ctx.clearRect(0,0,s,s);
+        for(let i=0;i<n;i++){const sa=i*arc+rot,ea=sa+arc;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,sa,ea);ctx.closePath();ctx.fillStyle=segments[i].color;ctx.fill();ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=2;ctx.stroke();ctx.save();ctx.translate(cx,cy);ctx.rotate(sa+arc/2);ctx.textAlign='right';ctx.fillStyle='#1a1a2e';ctx.font='bold '+s*0.045+'px Segoe UI';ctx.fillText(segments[i].label,r-s*0.06,s*0.016);ctx.restore();}
+        ctx.beginPath();ctx.arc(cx,cy,s*0.07,0,2*Math.PI);ctx.fillStyle='#FFD700';ctx.fill();ctx.fillStyle='#1a1a2e';ctx.font='bold '+s*0.035+'px Segoe UI';ctx.textAlign='center';ctx.fillText('SPIN',cx,cy+2);
     }
-    
-    function drawWheel() {
-        const size = getSize();
-        const cx = size / 2;
-        const cy = size / 2;
-        const radius = size / 2 - 10;
-        
-        ctx.clearRect(0, 0, size, size);
-        
-        for (let i = 0; i < numSegments; i++) {
-            const startAngle = i * arcSize + currentRotation;
-            const endAngle = startAngle + arcSize;
-            
-            ctx.beginPath();
-            ctx.moveTo(cx, cy);
-            ctx.arc(cx, cy, radius, startAngle, endAngle);
-            ctx.closePath();
-            ctx.fillStyle = segments[i].color;
-            ctx.fill();
-            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            ctx.save();
-            ctx.translate(cx, cy);
-            ctx.rotate(startAngle + arcSize / 2);
-            ctx.textAlign = 'right';
-            ctx.fillStyle = '#1a1a2e';
-            ctx.font = `bold ${size * 0.045}px "Segoe UI", sans-serif`;
-            ctx.fillText(segments[i].label, radius - size * 0.06, size * 0.016);
-            ctx.restore();
-        }
-        
-        // Center
-        const centerR = size * 0.07;
-        ctx.beginPath();
-        ctx.arc(cx, cy, centerR, 0, 2 * Math.PI);
-        ctx.fillStyle = '#FFD700';
-        ctx.fill();
-        ctx.strokeStyle = '#1a1a2e';
-        ctx.lineWidth = 2.5;
-        ctx.stroke();
-        ctx.fillStyle = '#1a1a2e';
-        ctx.font = `bold ${size * 0.035}px "Segoe UI", sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('SPIN', cx, cy);
-    }
-    
     function startSpin() {
-        if (isSpinning) return;
-        isSpinning = true;
-        
-        const btn = document.getElementById('spinButton');
-        btn.disabled = true;
-        btn.textContent = '🎰 BERPUTAR...';
-        document.getElementById('resultArea').innerHTML = '';
-        
-        const weights = [20, 20, 18, 15, 12, 8, 5, 2];
-        const totalWeight = weights.reduce((a, b) => a + b, 0);
-        let random = Math.floor(Math.random() * totalWeight) + 1;
-        let winIndex = 0, cumulative = 0;
-        for (let i = 0; i < weights.length; i++) {
-            cumulative += weights[i];
-            if (random <= cumulative) { winIndex = i; break; }
-        }
-        
-        const pointerAngle = -Math.PI / 2;
-        const segmentMiddle = winIndex * arcSize + arcSize / 2;
-        const fullSpins = (5 + Math.floor(Math.random() * 4)) * 2 * Math.PI;
-        const targetRotation = fullSpins + (pointerAngle - segmentMiddle);
-        const finalRotation = currentRotation + targetRotation;
-        
-        const duration = 4500;
-        const startTime = performance.now();
-        const startRotation = currentRotation;
-        
-        function animate(now) {
-            const elapsed = now - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 4);
-            currentRotation = startRotation + targetRotation * eased;
-            drawWheel();
-            
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                currentRotation = finalRotation % (2 * Math.PI);
-                drawWheel();
-                
-                fetch('spin-wheel.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-                })
-                .then(r => r.json())
-                .then(data => {
-                    showResult(data.prize, data.expiry);
-                    isSpinning = false;
-                    btn.textContent = '🎰 SPIN SEKARANG!';
-                })
-                .catch(() => {
-                    showResult(segments[winIndex], '06 Aug 2026');
-                    isSpinning = false;
-                    btn.textContent = '🎰 SPIN SEKARANG!';
-                });
-            }
-        }
-        
-        requestAnimationFrame(animate);
+        if(spinning)return;spinning=true;document.getElementById('spinButton').disabled=true;document.getElementById('spinButton').textContent='🎰 BERPUTAR...';document.getElementById('resultArea').innerHTML='';
+        const w=[20,20,18,15,12,8,5,2];const tw=w.reduce((a,b)=>a+b,0);let r=Math.floor(Math.random()*tw)+1,wi=0,c=0;
+        for(let i=0;i<w.length;i++){c+=w[i];if(r<=c){wi=i;break;}}
+        const pa=-Math.PI/2,sm=wi*arc+arc/2,fs=(5+Math.floor(Math.random()*4))*2*Math.PI,tr=fs+(pa-sm),fr=rot+tr,dur=4500,st=performance.now(),sr=rot;
+        function anim(now){const e=now-st,p=Math.min(e/dur,1),ea=1-Math.pow(1-p,4);rot=sr+tr*ea;draw();if(p<1)requestAnimationFrame(anim);else{rot=fr%(2*Math.PI);draw();fetch('spin-wheel.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'}}).then(r=>r.json()).then(d=>{document.getElementById('resultArea').innerHTML=segments[wi].discount>0?`<div class="info-card text-center"><h3>🎉 ${segments[wi].label}!</h3><p>Berlaku sampai: ${d.expiry}</p><a href="index.php" class="btn btn-warning rounded-pill px-3">🛒 Belanja</a></div>`:`<div class="info-card text-center"><h3>😅 Coba Lagi!</h3></div>`;spinning=false;document.getElementById('spinButton').textContent='🎰 SPIN SEKARANG!';}).catch(()=>{spinning=false;document.getElementById('spinButton').textContent='🎰 SPIN SEKARANG!';});}}
+        requestAnimationFrame(anim);
     }
-    
-    function showResult(prize, expiry) {
-        const area = document.getElementById('resultArea');
-        if (prize.discount > 0) {
-            area.innerHTML = `
-                <div class="info-card text-center" style="animation: fadeInUp 0.5s ease;">
-                    <h3 style="color:#FFD700;">🎉 SELAMAT!</h3>
-                    <div class="discount-show">Kamu Dapat ${prize.label}!</div>
-                    <span class="expiry-tag">⏰ Berlaku sampai: <strong>${expiry}</strong></span>
-                    <p class="text-blue mt-3">Diskon otomatis dipotong saat checkout!</p>
-                    <a href="index.php" class="btn-shop">🛒 Belanja Sekarang</a>
-                </div>`;
-            Swal.fire({
-                title: '🎉 ' + prize.label + '!',
-                html: `<p>Diskon berlaku sampai <strong>${expiry}</strong></p><p>Gunakan sebelum hangus!</p>`,
-                icon: 'success',
-                confirmButtonText: 'OK, SIAP!',
-                background: '#1a1a2e',
-                color: 'white',
-                confirmButtonColor: '#FFD700'
-            });
-        } else {
-            area.innerHTML = `
-                <div class="info-card text-center" style="animation: fadeInUp 0.5s ease;">
-                    <h3>😅 Belum Beruntung</h3>
-                    <p>Kamu dapat <strong>Coba Lagi</strong></p>
-                    <p style="font-size:0.85rem;opacity:0.7;">Coba lagi besok!</p>
-                    <a href="index.php" class="btn-shop">🛒 Belanja Dulu</a>
-                </div>`;
-        }
-    }
-    
-    // Init
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    
+    function resize(){const s=getSize();canvas.width=s*(window.devicePixelRatio||1);canvas.height=s*(window.devicePixelRatio||1);canvas.style.width=s+'px';canvas.style.height=s+'px';ctx.scale(window.devicePixelRatio||1,window.devicePixelRatio||1);draw();}
+    resize();window.addEventListener('resize',resize);
     <?php endif; ?>
     </script>
 </body>
