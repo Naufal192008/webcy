@@ -12,7 +12,6 @@ if (!$order) {
     exit;
 }
 
-// Format data
 $orderNumber = str_pad($order['id'], 6, '0', STR_PAD_LEFT);
 $totalPrice = $order['total_price'];
 $paymentMethod = $order['payment_method'];
@@ -28,6 +27,7 @@ $paymentName = 'WebPro UMKM';
     <title>Pembayaran #<?= $orderNumber ?> - WebPro UMKM</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
@@ -54,7 +54,94 @@ $paymentName = 'WebPro UMKM';
             margin: 0 auto;
         }
         
-        /* Header */
+        /* BACK BUTTON */
+        .btn-back-top {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 10px 20px;
+            border-radius: 50px;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+            background: white;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.06);
+        }
+        
+        .btn-back-top:hover {
+            color: var(--primary);
+            background: #f8f9ff;
+            transform: translateX(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        /* NAVBAR */
+        .navbar-payment {
+            background: white;
+            border-radius: 15px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .navbar-payment .brand {
+            font-weight: 800;
+            font-size: 1.2rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        
+        .navbar-payment .brand i {
+            font-size: 1.4rem;
+        }
+        
+        .navbar-payment .nav-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-nav {
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid #ddd;
+            background: white;
+            color: #555;
+        }
+        
+        .btn-nav:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-nav.primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .btn-nav.primary:hover {
+            background: #224abe;
+        }
+        
+        /* HEADER */
         .payment-header {
             text-align: center;
             margin-bottom: 20px;
@@ -83,7 +170,7 @@ $paymentName = 'WebPro UMKM';
             color: #333;
         }
         
-        /* Cards */
+        /* CARDS */
         .card-payment {
             background: white;
             border-radius: 20px;
@@ -100,7 +187,7 @@ $paymentName = 'WebPro UMKM';
             gap: 10px;
         }
         
-        /* Order Info */
+        /* ORDER INFO */
         .order-info {
             display: flex;
             justify-content: space-between;
@@ -110,7 +197,6 @@ $paymentName = 'WebPro UMKM';
         }
         
         .order-info:last-child { border-bottom: none; }
-        
         .order-info .label { color: #888; font-size: 0.9rem; }
         .order-info .value { font-weight: 700; color: #333; }
         
@@ -128,7 +214,7 @@ $paymentName = 'WebPro UMKM';
             color: var(--primary);
         }
         
-        /* Payment Number */
+        /* PAYMENT NUMBER */
         .payment-number-box {
             background: #f8f9fa;
             border: 2px dashed #ddd;
@@ -155,11 +241,12 @@ $paymentName = 'WebPro UMKM';
             cursor: pointer;
             margin-top: 10px;
             transition: 0.3s;
+            font-size: 0.9rem;
         }
         
         .payment-number-box .copy-btn:hover { background: #224abe; }
         
-        /* QR Code */
+        /* QR CODE */
         .qr-section {
             text-align: center;
             padding: 20px;
@@ -171,7 +258,7 @@ $paymentName = 'WebPro UMKM';
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
         }
         
-        /* Steps */
+        /* STEPS */
         .steps-list {
             list-style: none;
             padding: 0;
@@ -202,7 +289,7 @@ $paymentName = 'WebPro UMKM';
             font-size: 0.85rem;
         }
         
-        /* Buttons */
+        /* BUTTONS */
         .btn-group-bottom {
             display: grid;
             gap: 10px;
@@ -225,7 +312,7 @@ $paymentName = 'WebPro UMKM';
         
         .btn-wa:hover { background: #1da851; color: white; }
         
-        .btn-history {
+        .btn-outline {
             background: white;
             color: #666;
             border: 2px solid #ddd;
@@ -238,9 +325,9 @@ $paymentName = 'WebPro UMKM';
             transition: 0.3s;
         }
         
-        .btn-history:hover { border-color: #999; color: #333; }
+        .btn-outline:hover { border-color: #999; color: #333; }
         
-        /* Countdown */
+        /* COUNTDOWN */
         .countdown-timer {
             background: #fff3cd;
             border-radius: 10px;
@@ -250,7 +337,7 @@ $paymentName = 'WebPro UMKM';
             margin: 10px 0;
         }
         
-        /* Tabs */
+        /* TABS */
         .payment-tabs {
             display: flex;
             gap: 5px;
@@ -287,14 +374,37 @@ $paymentName = 'WebPro UMKM';
 <body>
     <div class="container-box">
         
-        <!-- Header -->
+        <!-- NAVBAR -->
+        <div class="navbar-payment">
+            <a href="index.php" class="brand">
+                <i class="fas fa-globe"></i> WebPro UMKM
+            </a>
+            <div class="nav-actions">
+                <a href="index.php" class="btn-nav">
+                    <i class="fas fa-store"></i> Belanja
+                </a>
+                <a href="cart.php" class="btn-nav">
+                    <i class="fas fa-shopping-cart"></i> Keranjang
+                </a>
+                <a href="dashboard.php" class="btn-nav primary">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+            </div>
+        </div>
+        
+        <!-- BACK BUTTON -->
+        <a href="index.php" class="btn-back-top animate__animated animate__fadeIn">
+            <i class="fas fa-arrow-left"></i> Kembali ke Halaman Belanja
+        </a>
+        
+        <!-- HEADER -->
         <div class="payment-header">
             <div class="success-icon"><i class="fas fa-check"></i></div>
             <h4>Pesanan Berhasil Dibuat!</h4>
             <p class="text-muted">Segera selesaikan pembayaran Anda</p>
         </div>
         
-        <!-- Order Details -->
+        <!-- ORDER DETAILS -->
         <div class="card-payment">
             <h5><i class="fas fa-receipt text-primary"></i> Detail Pesanan</h5>
             <div class="order-info">
@@ -315,7 +425,7 @@ $paymentName = 'WebPro UMKM';
             </div>
         </div>
         
-        <!-- Payment Method Tabs -->
+        <!-- PAYMENT METHOD TABS -->
         <div class="card-payment">
             <h5><i class="fas fa-wallet text-primary"></i> Pilih Metode Transfer</h5>
             <div class="payment-tabs" id="paymentTabs">
@@ -325,7 +435,6 @@ $paymentName = 'WebPro UMKM';
                 <button class="payment-tab" onclick="showPayment('qris')">QRIS</button>
             </div>
             
-            <!-- Payment Detail Content -->
             <div id="paymentContent">
                 <!-- DANA -->
                 <div id="pay-dana" class="payment-detail">
@@ -366,14 +475,14 @@ $paymentName = 'WebPro UMKM';
                 <!-- QRIS -->
                 <div id="pay-qris" class="payment-detail" style="display:none;">
                     <div class="qr-section">
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=085710785244" alt="QR Code">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=085710785244" alt="QR Code" onerror="this.src='https://via.placeholder.com/200x200?text=QR+Code'">
                         <p class="mt-2 text-muted">Scan dengan aplikasi DANA/OVO/GoPay/LinkAja</p>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Steps -->
+        <!-- STEPS -->
         <div class="card-payment">
             <h5><i class="fas fa-list-ol text-primary"></i> Cara Membayar</h5>
             <ol class="steps-list">
@@ -387,19 +496,22 @@ $paymentName = 'WebPro UMKM';
             </ol>
         </div>
         
-        <!-- Countdown -->
+        <!-- COUNTDOWN -->
         <div class="countdown-timer">
             ⏰ Selesaikan pembayaran dalam: <strong id="countdown">24:00:00</strong>
         </div>
         
-        <!-- Buttons -->
+        <!-- BUTTONS -->
         <div class="btn-group-bottom">
             <a href="https://wa.me/6285710785244?text=Halo%20Admin%20WebPro%20UMKM%2C%20saya%20sudah%20transfer%20untuk%20order%20%23<?= $orderNumber ?>%20sebesar%20Rp%20<?= number_format($totalPrice, 0, ',', '.') ?>%20via%20<?= strtoupper($paymentMethod) ?>." 
                target="_blank" class="btn-wa">
                 <i class="fab fa-whatsapp"></i> Konfirmasi via WhatsApp
             </a>
-            <a href="history.php" class="btn-history">
+            <a href="history.php" class="btn-outline">
                 <i class="fas fa-history"></i> Lihat Riwayat Pesanan
+            </a>
+            <a href="index.php" class="btn-outline">
+                <i class="fas fa-store"></i> Kembali Belanja
             </a>
         </div>
         
@@ -409,11 +521,9 @@ $paymentName = 'WebPro UMKM';
     <script>
         // Show payment detail based on tab
         function showPayment(method) {
-            // Update active tab
             document.querySelectorAll('.payment-tab').forEach(t => t.classList.remove('active'));
             event.target.classList.add('active');
             
-            // Show content
             document.querySelectorAll('.payment-detail').forEach(d => d.style.display = 'none');
             const target = document.getElementById('pay-' + method);
             if (target) target.style.display = 'block';
@@ -434,7 +544,6 @@ $paymentName = 'WebPro UMKM';
                     });
                 });
             } else {
-                // Fallback
                 const input = document.createElement('input');
                 input.value = number;
                 document.body.appendChild(input);
