@@ -118,7 +118,7 @@ if (!empty($product['images'])) {
 }
 // Fallback jika tidak ada gambar
 if (empty($images)) {
-    $images = ['https://via.placeholder.com/600x400?text=No+Image'];
+    $images = ['data:image/svg+xml;base64,' . base64_encode('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" fill="#f0f0f0"><rect width="600" height="400"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" font-size="24" fill="#999">No Image</text></svg>')];
 }
 
 // Get cart count
@@ -513,7 +513,7 @@ if ($isLoggedIn) {
                          class="main-image" 
                          id="mainImage" 
                          alt="<?= escape($product['name']) ?>"
-                         onerror="this.src='https://via.placeholder.com/600x400?text=No+Image'">
+                         onerror="this.onerror=null;this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22600%22 height=%22400%22 fill=%22%23f0f0f0%22><rect width=%22600%22 height=%22400%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2224%22 fill=%22%23999%22>No Image</text></svg>'">
                 </div>
                 
                 <?php if (count($images) > 1): ?>
@@ -522,7 +522,7 @@ if ($isLoggedIn) {
                     <img src="<?= escape($img) ?>" 
                          class="thumbnail <?= $i === 0 ? 'active' : '' ?>" 
                          onclick="changeMainImage('<?= escape($img) ?>', this)"
-                         onerror="this.src='https://via.placeholder.com/70x55?text=...'">
+                         onerror="this.onerror=null;this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2270%22 height=%2255%22 fill=%22%23f0f0f0%22><rect width=%2270%22 height=%2255%22/><text x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 font-size=%2212%22 fill=%22%23999%22>...</text></svg>'">
                     <?php endforeach; ?>
                 </div>
                 <?php endif; ?>
